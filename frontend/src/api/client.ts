@@ -326,4 +326,64 @@ export const api = {
   getExportCsvUrl: (status?: string) => {
     return `${API_BASE}/export/csv${status ? `?status=${status}` : ''}`;
   },
+
+  // User Account & Workspaces
+  getAccount: async (): Promise<UserAccountProfile> => {
+    const res = await fetch(`${API_BASE}/account/me`);
+    if (!res.ok) throw new Error('Failed to fetch account profile');
+    return res.json();
+  },
+
+  updateAccount: async (data: Partial<UserAccountProfile>): Promise<UserAccountProfile> => {
+    const res = await fetch(`${API_BASE}/account/me`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Failed to update account profile');
+    return res.json();
+  },
+
+  switchWorkspace: async (workspaceId: string): Promise<UserAccountProfile> => {
+    const res = await fetch(`${API_BASE}/account/switch-workspace`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ workspace_id: workspaceId }),
+    });
+    if (!res.ok) throw new Error('Failed to switch workspace');
+    return res.json();
+  },
+
+  createWorkspace: async (name: string, type = 'LLC / Consulting'): Promise<UserAccountProfile> => {
+    const res = await fetch(`${API_BASE}/account/workspaces`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, type }),
+    });
+    if (!res.ok) throw new Error('Failed to create workspace');
+    return res.json();
+  },
 };
+
+export interface WorkspaceItem {
+  id: string;
+  name: string;
+  type: string;
+  is_default: boolean;
+}
+
+export interface UserAccountProfile {
+  id: string;
+  full_name: string;
+  email: string;
+  role: string;
+  business_name: string;
+  tax_id: string;
+  home_currency: string;
+  accountant_email: string | null;
+  fiscal_year_start: string;
+  active_workspace_id: string;
+  workspaces: WorkspaceItem[];
+  created_at: string;
+  updated_at: string;
+}

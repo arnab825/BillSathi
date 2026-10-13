@@ -167,3 +167,26 @@ class AuditLog(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     document = relationship("Document", back_populates="audit_logs")
+
+
+class UserAccount(Base):
+    __tablename__ = "user_accounts"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    full_name = Column(String(150), default="Alex Rivera", nullable=False)
+    email = Column(String(150), default="alex@billsathi.local", nullable=False)
+    role = Column(String(100), default="Principal Consultant", nullable=False)
+    business_name = Column(String(200), default="Rivera Digital Labs LLC", nullable=False)
+    tax_id = Column(String(100), default="EIN-84-2918471", nullable=False)
+    home_currency = Column(String(10), default="USD", nullable=False)
+    accountant_email = Column(String(150), default="tax-advisor@claritycpa.com", nullable=True)
+    fiscal_year_start = Column(String(50), default="January", nullable=False)
+    active_workspace_id = Column(String(50), default="ws_primary", nullable=False)
+    workspaces_json = Column(
+        Text,
+        default='[{"id":"ws_primary","name":"Rivera Digital Labs","type":"LLC / Consulting","is_default":true},{"id":"ws_personal","name":"Personal & Micro Ventures","type":"Sole Proprietorship","is_default":false}]',
+        nullable=False,
+    )
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+

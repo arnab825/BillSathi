@@ -5,6 +5,7 @@ from app.models.entities import (
     Anomaly,
     VendorProfile,
     AuditLog,
+    UserAccount,
 )
 
 __all__ = [
@@ -14,4 +15,5 @@ __all__ = [
     "Anomaly",
     "VendorProfile",
     "AuditLog",
+    "UserAccount",
 ]

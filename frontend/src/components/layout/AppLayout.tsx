@@ -18,9 +18,12 @@ import {
   FileCheck2,
   ShieldCheck,
   User,
+  ChevronDown,
+  Briefcase,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../api/client';
+import { AccountModal } from '../account/AccountModal';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -34,6 +37,13 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [globalSearch, setGlobalSearch] = useState('');
+  const [accountModalOpen, setAccountModalOpen] = useState(false);
+
+  // Fetch real user account & workspaces from SQLite
+  const { data: account } = useQuery({
+    queryKey: ['userAccount'],
+    queryFn: api.getAccount,
+  });
 
   // Fetch live system health
   const { data: health } = useQuery({
@@ -87,8 +97,23 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
     }
   };
 
+  const activeWorkspace = account?.workspaces.find((w) => w.id === account.active_workspace_id);
+  const initials = account?.full_name
+    ? account.full_name
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .substring(0, 2)
+    : 'AR';
+
   return (
     <div className="min-h-screen bg-[#111827] text-[#F9FAFB] flex font-sans">
+      {/* Real Account Profile Modal */}
+      <AccountModal
+        isOpen={accountModalOpen}
+        onClose={() => setAccountModalOpen(false)}
+      />
+
       {/* Mobile Backdrop */}
       {mobileOpen && (
         <div
@@ -134,6 +159,32 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
             {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
           </button>
         </div>
+
+        {/* Real Workspace Switcher Header */}
+        {!collapsed && (
+          <div className="p-3 border-b border-[#374151]">
+            <button
+              type="button"
+              onClick={() => setAccountModalOpen(true)}
+              className="w-full p-2.5 rounded-lg bg-[#111827] border border-[#374151] hover:border-[#10B981]/50 text-left btn-transition flex items-center justify-between group"
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-6 h-6 rounded bg-[#10B981]/15 border border-[#10B981]/30 flex items-center justify-center text-[#10B981] text-[10px] font-bold flex-shrink-0">
+                  <Briefcase className="w-3.5 h-3.5" />
+                </div>
+                <div className="truncate">
+                  <div className="text-xs font-bold text-[#F9FAFB] truncate">
+                    {activeWorkspace?.name || account?.business_name || 'My Business Entity'}
+                  </div>
+                  <div className="text-[10px] text-[#9CA3AF] truncate">
+                    {account?.role || 'Principal Consultant'}
+                  </div>
+                </div>
+              </div>
+              <ChevronDown className="w-3.5 h-3.5 text-[#9CA3AF] group-hover:text-[#F9FAFB] flex-shrink-0" />
+            </button>
+          </div>
+        )}
 
         {/* Navigation Items */}
         <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
@@ -183,24 +234,38 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           })}
         </nav>
 
-        {/* Sidebar Footer info */}
+        {/* Sidebar Footer Account Card */}
         <div className="p-3 border-t border-[#374151] flex-shrink-0">
           {!collapsed ? (
-            <div className="px-2 py-1 text-[11px] text-[#9CA3AF] space-y-1">
-              <div className="flex items-center justify-between">
-                <span>Model Engine:</span>
-                <span className="font-mono text-[#10B981] font-semibold text-[10px]">
-                  {isOllama ? 'Gemma 3 (Ollama)' : 'Regex Heuristic'}
-                </span>
+            <button
+              type="button"
+              onClick={() => setAccountModalOpen(true)}
+              className="w-full p-2 rounded-lg hover:bg-[#283548] btn-transition flex items-center gap-2.5 text-left"
+            >
+              <div className="w-8 h-8 rounded-full bg-[#10B981]/20 border border-[#10B981]/40 flex items-center justify-center text-[#10B981] font-bold text-xs flex-shrink-0">
+                {initials}
               </div>
-              <div className="text-[10px] text-[#6B7280]">
-                Commercial Side Hustle Edition
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-bold text-[#F9FAFB] truncate">
+                  {account?.full_name || 'Alex Rivera'}
+                </div>
+                <div className="text-[10px] text-[#9CA3AF] truncate">
+                  {account?.email || 'alex@billsathi.local'}
+                </div>
               </div>
-            </div>
+              <Settings className="w-3.5 h-3.5 text-[#9CA3AF] flex-shrink-0" />
+            </button>
           ) : (
-            <div className="flex justify-center" title="BillSathi v1.0.0">
-              <ShieldCheck className="w-5 h-5 text-[#10B981]" />
-            </div>
+            <button
+              type="button"
+              onClick={() => setAccountModalOpen(true)}
+              className="w-full flex justify-center p-1 rounded hover:bg-[#283548]"
+              title={`Account: ${account?.full_name || 'Alex Rivera'}`}
+            >
+              <div className="w-8 h-8 rounded-full bg-[#10B981]/20 border border-[#10B981]/40 flex items-center justify-center text-[#10B981] font-bold text-xs">
+                {initials}
+              </div>
+            </button>
           )}
         </div>
       </aside>
@@ -272,15 +337,25 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
               <span className="hidden lg:inline">Seed Demo</span>
             </button>
 
-            {/* User Profile Pill */}
-            <div className="flex items-center gap-2 pl-2 border-l border-[#374151]">
-              <div className="w-7 h-7 rounded-full bg-[#374151] flex items-center justify-center text-[#F9FAFB] text-xs font-bold border border-[#4B5563]">
-                <User className="w-3.5 h-3.5 text-[#9CA3AF]" />
+            {/* Real Interactive User Account Button */}
+            <button
+              type="button"
+              onClick={() => setAccountModalOpen(true)}
+              className="flex items-center gap-2.5 pl-2.5 border-l border-[#374151] hover:opacity-85 btn-transition text-left"
+              title="Click to view and edit account profile & tax entity"
+            >
+              <div className="w-8 h-8 rounded-full bg-[#10B981]/20 border border-[#10B981]/40 flex items-center justify-center text-[#10B981] text-xs font-bold">
+                {initials}
               </div>
-              <span className="hidden xl:inline text-xs font-medium text-[#F9FAFB]">
-                Freelance Studio
-              </span>
-            </div>
+              <div className="hidden xl:block">
+                <div className="text-xs font-bold text-[#F9FAFB] leading-none">
+                  {account?.full_name || 'Alex Rivera'}
+                </div>
+                <div className="text-[10px] text-[#10B981] font-mono leading-tight mt-0.5">
+                  {activeWorkspace?.name || account?.business_name || 'Rivera Digital Labs'}
+                </div>
+              </div>
+            </button>
           </div>
         </header>
 
@@ -300,7 +375,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
               <span>Local Open-Weight AI</span>
             </div>
             <div className="text-[11px] text-[#6B7280]">
-              Hacktoberfest 2026 DEV Open-Source AI Challenge • Side Hustle
+              {account?.business_name || 'Rivera Digital Labs LLC'} • Tax ID: {account?.tax_id || 'EIN-84-2918471'}
             </div>
           </div>
         </footer>

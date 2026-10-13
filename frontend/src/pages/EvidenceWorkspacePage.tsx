@@ -47,13 +47,26 @@ export const EvidenceWorkspacePage: React.FC = () => {
     enabled: !!selectedDocId,
   });
 
+  // Fetch active user account profile
+  const { data: account } = useQuery({
+    queryKey: ['userAccountProfile'],
+    queryFn: api.getAccount,
+  });
+
   const [activePage, setActivePage] = useState(1);
   const [zoomLevel, setZoomLevel] = useState(100);
   const [selectedField, setSelectedField] = useState<ExtractedFieldItem | null>(null);
   const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const [editNote, setEditNote] = useState('');
-  const [reviewerName, setReviewerName] = useState('Human Reviewer');
+  const [reviewerName, setReviewerName] = useState('Alex Rivera');
+
+  // Sync reviewer name with account profile once loaded
+  useEffect(() => {
+    if (account?.full_name) {
+      setReviewerName(account.full_name);
+    }
+  }, [account?.full_name]);
 
   // When doc changes, select first field
   useEffect(() => {
@@ -330,14 +343,21 @@ export const EvidenceWorkspacePage: React.FC = () => {
                   Inspect source evidence on the canvas. Correct any misread values. Confirming promotes this document to a verified financial record.
                 </p>
 
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={reviewerName}
-                    onChange={(e) => setReviewerName(e.target.value)}
-                    className="flex-1 px-2.5 py-1.5 rounded-lg bg-[#111827] border border-[#374151] text-xs text-[#F9FAFB] focus:outline-none focus:border-[#10B981]"
-                    placeholder="Reviewer Name"
-                  />
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                  <div className="flex-1 relative">
+                    <input
+                      type="text"
+                      value={reviewerName}
+                      onChange={(e) => setReviewerName(e.target.value)}
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-[#111827] border border-[#374151] text-xs text-[#F9FAFB] focus:outline-none focus:border-[#10B981]"
+                      placeholder="Reviewer Name"
+                    />
+                    {account && (
+                      <span className="absolute right-2 top-1.5 text-[9px] font-mono text-[#10B981] bg-[#10B981]/10 px-1.5 py-0.5 rounded border border-[#10B981]/20 hidden sm:inline-block">
+                        {account.business_name}
+                      </span>
+                    )}
+                  </div>
 
                   {fin && (
                     <button
