@@ -352,13 +352,16 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           })}
         </nav>
 
-        {/* Sidebar Footer Account Card */}
+        {/* Sidebar Footer Account Card - Links directly to Settings */}
         <div className="p-3 border-t border-[#374151] flex-shrink-0">
           {!collapsed ? (
-            <button
-              type="button"
-              onClick={() => setAccountModalOpen(true)}
-              className="w-full p-2 rounded-lg hover:bg-[#283548] btn-transition flex items-center gap-2.5 text-left"
+            <Link
+              to="/settings"
+              onClick={() => setMobileOpen(false)}
+              className={`w-full p-2 rounded-lg hover:bg-[#283548] btn-transition flex items-center gap-2.5 text-left ${
+                location.pathname === '/settings' ? 'bg-[#283548] border border-[#374151]' : ''
+              }`}
+              title="Entity & System Settings"
             >
               <UserAvatar avatarUrl={account?.avatar_url} name={account?.full_name} size="sm" />
               <div className="min-w-0 flex-1">
@@ -370,16 +373,18 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                 </div>
               </div>
               <Settings className="w-3.5 h-3.5 text-[#9CA3AF] flex-shrink-0" />
-            </button>
+            </Link>
           ) : (
-            <button
-              type="button"
-              onClick={() => setAccountModalOpen(true)}
-              className="w-full flex justify-center p-1 rounded hover:bg-[#283548]"
-              title={`Account: ${account?.full_name || 'Alex Rivera'}`}
+            <Link
+              to="/settings"
+              onClick={() => setMobileOpen(false)}
+              className={`w-full flex justify-center p-1 rounded hover:bg-[#283548] ${
+                location.pathname === '/settings' ? 'bg-[#283548]' : ''
+              }`}
+              title={`Settings: ${account?.full_name || 'Alex Rivera'}`}
             >
               <UserAvatar avatarUrl={account?.avatar_url} name={account?.full_name} size="sm" />
-            </button>
+            </Link>
           )}
         </div>
       </aside>

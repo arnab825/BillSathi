@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Settings,
@@ -14,10 +14,13 @@ import {
   CheckCircle2,
   Plus,
   Briefcase,
+  Camera,
+  Upload,
 } from 'lucide-react';
 import { api } from '../api/client';
 import { CustomDropdown } from '../components/common/CustomDropdown';
 import { UserAvatar } from '../components/common/UserAvatar';
+import { useToast } from '../context/ToastContext';
 
 const currencyOptions = [
   { value: 'USD', label: 'USD ($)', description: 'United States Dollar', badge: '$' },
@@ -27,16 +30,28 @@ const currencyOptions = [
   { value: 'CAD', label: 'CAD ($)', description: 'Canadian Dollar', badge: '$' },
 ];
 
+const presetAvatars = [
+  { id: 'p1', label: 'Alex', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&h=256&q=80' },
+  { id: 'p2', label: 'Marcus', url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=256&h=256&q=80' },
+  { id: 'p3', label: 'Elena', url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=256&h=256&q=80' },
+  { id: 'p4', label: 'David', url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=256&h=256&q=80' },
+  { id: 'p5', label: 'Sarah', url: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=256&h=256&q=80' },
+  { id: 'p6', label: 'James', url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=256&h=256&q=80' },
+];
+
 export const SettingsPage: React.FC = () => {
   const queryClient = useQueryClient();
+  const toast = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [resetting, setResetting] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState('');
   const [showNewWorkspace, setShowNewWorkspace] = useState(false);
 
-  // User Account Profile query
+  // User Account Profile query - synchronized key
   const { data: account, isLoading: accountLoading } = useQuery({
-    queryKey: ['userAccountProfile'],
+    queryKey: ['userAccount'],
     queryFn: api.getAccount,
   });
 
@@ -47,6 +62,7 @@ export const SettingsPage: React.FC = () => {
   const [homeCurrency, setHomeCurrency] = useState('USD');
   const [accountantEmail, setAccountantEmail] = useState('');
   const [fiscalYearStart, setFiscalYearStart] = useState('01-01');
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (account) {
@@ -57,6 +73,7 @@ export const SettingsPage: React.FC = () => {
       setHomeCurrency(account.home_currency);
       setAccountantEmail(account.accountant_email || '');
       setFiscalYearStart(account.fiscal_year_start || '01-01');
+      setAvatarUrl(account.avatar_url || null);
     }
   }, [account]);
 
@@ -65,9 +82,45 @@ export const SettingsPage: React.FC = () => {
     onSuccess: () => {
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2800);
-      queryClient.invalidateQueries({ queryKey: ['userAccountProfile'] });
+      toast.success('Entity Profile Saved', 'Updated business credentials and profile photo in Podman SQLite.');
+      queryClient.invalidateQueries({ queryKey: ['userAccount'] });
+    },
+    onError: (err: any) => {
+      toast.error('Save Failed', err?.message || 'Could not update entity settings');
     },
   });
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Invalid File Type', 'Please upload a PNG, JPG, or WebP image.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (readerEvent) => {
+      const img = new window.Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = 256;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          const minDim = Math.min(img.width, img.height);
+          const sx = (img.width - minDim) / 2;
+          const sy = (img.height - minDim) / 2;
+          ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, 256, 256);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+          setAvatarUrl(dataUrl);
+          toast.success('Photo Loaded', 'Click "Save Entity Profile" below to commit to database.');
+        }
+      };
+      img.src = readerEvent.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
 
   const switchWorkspaceMutation = useMutation({
     mutationFn: api.switchWorkspace,
@@ -156,11 +209,96 @@ export const SettingsPage: React.FC = () => {
                 home_currency: homeCurrency,
                 accountant_email: accountantEmail,
                 fiscal_year_start: fiscalYearStart,
-                avatar_url: account?.avatar_url,
+                avatar_url: avatarUrl,
               });
             }}
             className="space-y-4"
           >
+            {/* Profile Avatar & Reviewer Photo Customizer */}
+            <div className="p-4 rounded-xl bg-[#111827] border border-[#374151] space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-[#F9FAFB] uppercase tracking-wider flex items-center gap-1.5">
+                  <Camera className="w-3.5 h-3.5 text-[#10B981]" />
+                  Profile Avatar & Reviewer Signature Photo
+                </span>
+                {avatarUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setAvatarUrl(null)}
+                    className="text-xs text-[#F87171] hover:underline flex items-center gap-1 font-semibold"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    Reset to Initials
+                  </button>
+                )}
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center gap-4 pt-1">
+                <div className="relative group flex-shrink-0">
+                  <UserAvatar avatarUrl={avatarUrl} name={fullName} size="xl" />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="absolute inset-0 rounded-full bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-semibold btn-transition backdrop-blur-xs cursor-pointer"
+                    title="Change profile photo"
+                  >
+                    <Upload className="w-5 h-5 mb-0.5" />
+                  </button>
+                </div>
+
+                <div className="flex-1 space-y-2.5 text-center sm:text-left w-full">
+                  <div className="flex flex-wrap items-center gap-2.5 justify-center sm:justify-start">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/png, image/jpeg, image/webp"
+                      className="hidden"
+                      onChange={handleFileUpload}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-3.5 py-1.5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-black text-xs font-bold flex items-center gap-1.5 btn-transition shadow-sm"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      Upload Photo from Computer
+                    </button>
+                    <span className="text-[11px] text-[#9CA3AF]">
+                      Select PNG, JPG, or WebP. Stored locally in Podman SQLite.
+                    </span>
+                  </div>
+
+                  {/* Preset Avatars Row */}
+                  <div>
+                    <span className="text-[10px] text-[#9CA3AF] uppercase font-semibold tracking-wider block mb-1.5">
+                      Or pick an executive avatar preset:
+                    </span>
+                    <div className="flex items-center gap-2 overflow-x-auto pb-1 justify-center sm:justify-start">
+                      {presetAvatars.map((preset) => (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => setAvatarUrl(preset.url)}
+                          className={`relative rounded-full p-0.5 border-2 transition-all flex-shrink-0 cursor-pointer ${
+                            avatarUrl === preset.url
+                              ? 'border-[#10B981] scale-110 shadow-sm'
+                              : 'border-transparent hover:border-[#374151]'
+                          }`}
+                          title={preset.label}
+                        >
+                          <img
+                            src={preset.url}
+                            alt={preset.label}
+                            className="w-7 h-7 rounded-full object-cover"
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Workspaces Switcher Row */}
             <div className="p-3.5 rounded-lg bg-[#111827] border border-[#374151] space-y-2">
               <div className="flex items-center justify-between">
