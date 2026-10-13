@@ -50,15 +50,15 @@ export const CustomDropdown: React.FC<CustomDropdownProps> = ({
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className={`w-full flex items-center justify-between gap-2.5 rounded-xl bg-[#111827] border border-[#374151] hover:border-[#10B981]/50 text-[#F9FAFB] btn-transition focus:outline-none focus:ring-1 focus:ring-[#10B981] ${sizeClasses} ${buttonClassName}`}
+        className={`w-full flex items-center justify-between gap-2.5 rounded-xl bg-[#111827] border border-[#374151] hover:border-[#10B981]/50 text-[#F9FAFB] btn-transition focus:outline-none focus:ring-1 focus:ring-[#10B981] shadow-inner ${sizeClasses} ${buttonClassName}`}
       >
-        <div className="flex items-center gap-2 truncate">
+        <div className="flex items-center gap-2 truncate min-w-0">
           {selectedOption?.icon}
           <span className="font-semibold truncate">
             {selectedOption ? selectedOption.label : placeholder}
           </span>
           {selectedOption?.badge && (
-            <span className="px-1.5 py-0.2 rounded text-[10px] bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30">
+            <span className="px-1.5 py-0.2 rounded text-[10px] bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30 flex-shrink-0">
               {selectedOption.badge}
             </span>
           )}
@@ -71,7 +71,7 @@ export const CustomDropdown: React.FC<CustomDropdownProps> = ({
       </button>
 
       {open && (
-        <div className="absolute right-0 z-50 mt-1.5 min-w-[200px] w-full max-h-60 overflow-y-auto rounded-xl bg-[#1F2937]/98 border border-[#374151] shadow-2xl backdrop-blur-xl p-1 animate-in fade-in-0 zoom-in-95 duration-150">
+        <div className="absolute left-0 right-0 z-50 mt-1.5 min-w-[220px] max-h-64 overflow-y-auto rounded-2xl bg-gradient-to-b from-[#1F2937] to-[#111827] border border-[#374151] shadow-2xl backdrop-blur-2xl p-1.5 animate-in fade-in-0 zoom-in-95 duration-150 space-y-1">
           {options.map((opt) => {
             const isSelected = opt.value === value;
             return (
@@ -82,18 +82,18 @@ export const CustomDropdown: React.FC<CustomDropdownProps> = ({
                   onChange(opt.value);
                   setOpen(false);
                 }}
-                className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-left text-xs btn-transition group ${
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-xs btn-transition group ${
                   isSelected
-                    ? 'bg-[#10B981]/15 text-[#10B981] font-bold'
-                    : 'text-[#9CA3AF] hover:text-[#F9FAFB] hover:bg-[#283548]'
+                    ? 'bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30 font-bold shadow-sm'
+                    : 'text-[#9CA3AF] hover:text-[#F9FAFB] hover:bg-[#283548] border border-transparent'
                 }`}
               >
-                <div className="flex items-center gap-2 min-w-0 pr-2">
+                <div className="flex items-center gap-2.5 min-w-0 pr-2">
                   {opt.icon}
                   <div className="truncate">
-                    <div className="truncate font-medium">{opt.label}</div>
+                    <div className="truncate font-semibold">{opt.label}</div>
                     {opt.description && (
-                      <div className="text-[10px] text-[#9CA3AF] group-hover:text-[#9CA3AF] truncate">
+                      <div className="text-[10px] text-[#9CA3AF] group-hover:text-[#9CA3AF] truncate mt-0.5">
                         {opt.description}
                       </div>
                     )}

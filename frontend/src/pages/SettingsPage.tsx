@@ -16,6 +16,15 @@ import {
   Briefcase,
 } from 'lucide-react';
 import { api } from '../api/client';
+import { CustomDropdown } from '../components/common/CustomDropdown';
+
+const currencyOptions = [
+  { value: 'USD', label: 'USD ($)', description: 'United States Dollar', badge: '$' },
+  { value: 'EUR', label: 'EUR (€)', description: 'European Euro', badge: '€' },
+  { value: 'GBP', label: 'GBP (£)', description: 'British Pound Sterling', badge: '£' },
+  { value: 'INR', label: 'INR (₹)', description: 'Indian Rupee', badge: '₹' },
+  { value: 'CAD', label: 'CAD ($)', description: 'Canadian Dollar', badge: '$' },
+];
 
 export const SettingsPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -277,17 +286,13 @@ export const SettingsPage: React.FC = () => {
                 <label className="block text-[11px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-1">
                   Home Ledger Currency
                 </label>
-                <select
+                <CustomDropdown
                   value={homeCurrency}
-                  onChange={(e) => setHomeCurrency(e.target.value)}
-                  className="w-full px-2.5 py-1.5 rounded-lg bg-[#111827] border border-[#374151] text-xs text-[#F9FAFB] focus:outline-none focus:border-[#10B981]"
-                >
-                  <option value="USD">USD ($ - US Dollar)</option>
-                  <option value="EUR">EUR (€ - Euro)</option>
-                  <option value="GBP">GBP (£ - British Pound)</option>
-                  <option value="INR">INR (₹ - Indian Rupee)</option>
-                  <option value="CAD">CAD ($ - Canadian Dollar)</option>
-                </select>
+                  onChange={setHomeCurrency}
+                  className="w-full"
+                  size="sm"
+                  options={currencyOptions}
+                />
               </div>
 
               <div>

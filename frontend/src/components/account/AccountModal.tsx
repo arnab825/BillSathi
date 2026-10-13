@@ -15,6 +15,23 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { api, UserAccountProfile } from '../../api/client';
+import { CustomDropdown } from '../common/CustomDropdown';
+import { useToast } from '../../context/ToastContext';
+
+const currencyOptions = [
+  { value: 'USD', label: 'USD ($)', description: 'United States Dollar', badge: '$' },
+  { value: 'EUR', label: 'EUR (€)', description: 'European Euro', badge: '€' },
+  { value: 'GBP', label: 'GBP (£)', description: 'British Pound Sterling', badge: '£' },
+  { value: 'INR', label: 'INR (₹)', description: 'Indian Rupee', badge: '₹' },
+  { value: 'CAD', label: 'CAD ($)', description: 'Canadian Dollar', badge: '$' },
+];
+
+const workspaceTypeOptions = [
+  { value: 'LLC / Consulting', label: 'LLC / Consulting', description: 'Limited Liability Company' },
+  { value: 'Sole Proprietorship', label: 'Sole Proprietorship', description: 'Individual / Freelance' },
+  { value: 'C-Corp / S-Corp', label: 'C-Corp / S-Corp', description: 'Corporate entity' },
+  { value: 'Freelancer Individual', label: 'Freelancer Individual', description: 'Independent 1099' },
+];
 
 interface AccountModalProps {
   isOpen: boolean;
@@ -23,6 +40,7 @@ interface AccountModalProps {
 
 export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose }) => {
   const queryClient = useQueryClient();
+  const toast = useToast();
 
   const { data: account, isLoading } = useQuery({
     queryKey: ['userAccount'],
@@ -60,7 +78,11 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose }) =
     mutationFn: (data: Partial<UserAccountProfile>) => api.updateAccount(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['userAccount'] });
+      toast.success('Entity Profile Saved', 'Your fiscal configuration has been updated successfully.');
       onClose();
+    },
+    onError: (err: any) => {
+      toast.error('Failed to Save Profile', err?.message || 'Could not update entity settings');
     },
   });
 
@@ -69,6 +91,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose }) =
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['userAccount'] });
       queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
+      toast.info('Workspace Switched', 'Active ledger workspace updated.');
     },
   });
 
@@ -79,6 +102,10 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose }) =
       setIsAddingWorkspace(false);
       setNewWorkspaceName('');
       queryClient.invalidateQueries({ queryKey: ['userAccount'] });
+      toast.success('Workspace Created', 'New business entity registered.');
+    },
+    onError: (err: any) => {
+      toast.error('Creation Failed', err?.message || 'Could not add workspace');
     },
   });
 
@@ -175,16 +202,13 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose }) =
                   placeholder="Entity Name (e.g. Design Agency LLC)"
                   className="px-2.5 py-1.5 rounded-lg bg-[#111827] border border-[#374151] text-xs text-[#F9FAFB] focus:outline-none focus:border-[#10B981]"
                 />
-                <select
+                <CustomDropdown
                   value={newWorkspaceType}
-                  onChange={(e) => setNewWorkspaceType(e.target.value)}
-                  className="px-2.5 py-1.5 rounded-lg bg-[#111827] border border-[#374151] text-xs text-[#F9FAFB] focus:outline-none focus:border-[#10B981]"
-                >
-                  <option value="LLC / Consulting">LLC / Consulting</option>
-                  <option value="Sole Proprietorship">Sole Proprietorship</option>
-                  <option value="C-Corp / S-Corp">C-Corp / S-Corp</option>
-                  <option value="Freelancer Individual">Freelancer Individual</option>
-                </select>
+                  onChange={setNewWorkspaceType}
+                  options={workspaceTypeOptions}
+                  size="sm"
+                  className="w-full"
+                />
               </div>
               <div className="flex justify-end gap-2">
                 <button
@@ -284,17 +308,12 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose }) =
               <label className="text-[11px] font-bold text-[#9CA3AF] uppercase tracking-wider">
                 Default Home Currency
               </label>
-              <select
+              <CustomDropdown
                 value={homeCurrency}
-                onChange={(e) => setHomeCurrency(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-[#111827] border border-[#374151] text-xs text-[#F9FAFB] focus:outline-none focus:border-[#10B981]"
-              >
-                <option value="USD">USD ($ - United States Dollar)</option>
-                <option value="EUR">EUR (€ - Euro)</option>
-                <option value="GBP">GBP (£ - British Pound)</option>
-                <option value="INR">INR (₹ - Indian Rupee)</option>
-                <option value="CAD">CAD ($ - Canadian Dollar)</option>
-              </select>
+                onChange={setHomeCurrency}
+                options={currencyOptions}
+                className="w-full"
+              />
             </div>
           </div>
 
