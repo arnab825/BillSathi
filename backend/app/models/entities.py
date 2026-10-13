@@ -182,6 +182,7 @@ class UserAccount(Base):
     accountant_email = Column(String(150), default="tax-advisor@claritycpa.com", nullable=True)
     fiscal_year_start = Column(String(50), default="January", nullable=False)
     active_workspace_id = Column(String(50), default="ws_primary", nullable=False)
+    avatar_url = Column(Text, nullable=True)
     workspaces_json = Column(
         Text,
         default='[{"id":"ws_primary","name":"Rivera Digital Labs","type":"LLC / Consulting","is_default":true},{"id":"ws_personal","name":"Personal & Micro Ventures","type":"Sole Proprietorship","is_default":false}]',

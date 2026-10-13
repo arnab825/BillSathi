@@ -20,6 +20,13 @@ async def lifespan(app: FastAPI):
     # Startup: ensure tables exist
     logger.info("Initializing BillSathi database tables...")
     Base.metadata.create_all(bind=engine)
+    # Safe SQLite migration for new columns
+    try:
+        from sqlalchemy import text
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE user_accounts ADD COLUMN avatar_url TEXT"))
+    except Exception:
+        pass  # Column already exists or table freshly created
     logger.info("BillSathi backend initialized successfully.")
     yield
     logger.info("Shutting down BillSathi backend.")

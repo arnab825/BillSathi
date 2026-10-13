@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { api } from '../api/client';
 import { CustomDropdown } from '../components/common/CustomDropdown';
+import { UserAvatar } from '../components/common/UserAvatar';
 
 const currencyOptions = [
   { value: 'USD', label: 'USD ($)', description: 'United States Dollar', badge: '$' },
@@ -127,8 +128,8 @@ export const SettingsPage: React.FC = () => {
       {/* Account & Legal Entity Management */}
       <div className="p-5 rounded-xl border border-[#374151] bg-[#1F2937] space-y-5">
         <div className="flex items-center justify-between border-b border-[#374151] pb-3">
-          <div className="flex items-center gap-2">
-            <Building2 className="w-4 h-4 text-[#10B981]" />
+          <div className="flex items-center gap-3">
+            <UserAvatar avatarUrl={account?.avatar_url} name={fullName} size="md" />
             <div>
               <h2 className="text-sm font-bold text-[#F9FAFB]">Business Entity & Fiscal Profile</h2>
               <p className="text-[11px] text-[#9CA3AF]">
@@ -155,6 +156,7 @@ export const SettingsPage: React.FC = () => {
                 home_currency: homeCurrency,
                 accountant_email: accountantEmail,
                 fiscal_year_start: fiscalYearStart,
+                avatar_url: account?.avatar_url,
               });
             }}
             className="space-y-4"

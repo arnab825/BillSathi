@@ -43,6 +43,17 @@ export const AnomalyCenterPage: React.FC = () => {
     },
   });
 
+  // Handle ESC key to dismiss resolution modal
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedAnomaly) {
+        setSelectedAnomaly(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedAnomaly]);
+
   return (
     <div className="space-y-6 pb-8 max-w-6xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#374151] pb-4">
@@ -172,13 +183,19 @@ export const AnomalyCenterPage: React.FC = () => {
 
       {/* Resolution Modal */}
       {selectedAnomaly && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75">
-          <div className="w-full max-w-md rounded-xl bg-[#1F2937] border border-[#374151] p-5 space-y-4 shadow-2xl">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-150"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setSelectedAnomaly(null);
+          }}
+        >
+          <div className="w-full max-w-md rounded-xl bg-[#1F2937] border border-[#374151] p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between border-b border-[#374151] pb-3">
               <h3 className="text-sm font-bold text-[#F9FAFB]">Resolve Exception</h3>
               <button
                 onClick={() => setSelectedAnomaly(null)}
-                className="p-1 rounded text-[#9CA3AF] hover:text-[#F9FAFB]"
+                className="p-1 rounded text-[#9CA3AF] hover:text-[#F9FAFB] hover:bg-[#374151] btn-transition"
+                title="Dismiss (Esc)"
               >
                 <X className="w-4 h-4" />
               </button>

@@ -384,6 +384,7 @@ export interface UserAccountProfile {
   accountant_email: string | null;
   fiscal_year_start: string;
   active_workspace_id: string;
+  avatar_url?: string | null;
   workspaces: WorkspaceItem[];
   created_at: string;
   updated_at: string;

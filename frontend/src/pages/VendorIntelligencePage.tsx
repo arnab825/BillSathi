@@ -3,19 +3,27 @@ import { useQuery } from '@tanstack/react-query';
 import {
   Building2,
   TrendingUp,
+  Search,
 } from 'lucide-react';
 import { api } from '../api/client';
 import { formatCents } from '../components/common/StatusBadge';
 
 export const VendorIntelligencePage: React.FC = () => {
   const [selectedVendor, setSelectedVendor] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const { data: vendors, isLoading: loadingVendors } = useQuery({
     queryKey: ['vendorsList'],
     queryFn: api.listVendors,
   });
 
-  const activeVendorName = selectedVendor || (vendors && vendors.length > 0 ? vendors[0].name : null);
+  const filteredVendors = vendors?.filter(
+    (v) =>
+      v.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      v.default_category.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const activeVendorName = selectedVendor || (filteredVendors && filteredVendors.length > 0 ? filteredVendors[0].name : null);
 
   const { data: comparison, isLoading: loadingComparison } = useQuery({
     queryKey: ['vendorComparison', activeVendorName],
@@ -38,15 +46,27 @@ export const VendorIntelligencePage: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         {/* Left: Vendor List (5 cols) */}
         <div className="lg:col-span-5 space-y-2.5">
-          <div className="p-3 rounded-lg border border-[#374151] bg-[#1F2937] text-xs font-bold uppercase tracking-wider text-[#9CA3AF]">
-            Vendor Directory ({vendors?.length ?? 0})
+          <div className="p-3 rounded-xl border border-[#374151] bg-[#1F2937] space-y-2">
+            <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-[#9CA3AF]">
+              <span>Vendor Directory ({filteredVendors?.length ?? 0})</span>
+            </div>
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 text-[#9CA3AF] absolute left-2.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search vendor or category..."
+                className="w-full pl-8 pr-3 py-1.5 rounded-lg bg-[#111827] border border-[#374151] text-xs text-[#F9FAFB] placeholder:text-[#9CA3AF] focus:outline-none focus:border-[#10B981]"
+              />
+            </div>
           </div>
 
           <div className="space-y-2 max-h-[600px] overflow-y-auto">
             {loadingVendors ? (
               <div className="p-8 text-center text-xs text-[#9CA3AF]">Loading vendors...</div>
-            ) : vendors && vendors.length > 0 ? (
-              vendors.map((v) => {
+            ) : filteredVendors && filteredVendors.length > 0 ? (
+              filteredVendors.map((v) => {
                 const isSelected = activeVendorName === v.name;
                 return (
                   <div

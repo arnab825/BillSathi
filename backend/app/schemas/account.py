@@ -22,6 +22,7 @@ class UserAccountResponse(BaseModel):
     accountant_email: Optional[str] = None
     fiscal_year_start: str
     active_workspace_id: str
+    avatar_url: Optional[str] = None
     workspaces: List[WorkspaceItem]
     created_at: datetime
     updated_at: datetime
@@ -38,6 +39,7 @@ class UserAccountUpdate(BaseModel):
     home_currency: Optional[str] = None
     accountant_email: Optional[str] = None
     fiscal_year_start: Optional[str] = None
+    avatar_url: Optional[str] = None
 
 
 class SwitchWorkspaceRequest(BaseModel):

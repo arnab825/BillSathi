@@ -150,18 +150,32 @@ export const IntakePage: React.FC = () => {
             </p>
           </div>
 
+          <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+            <span className="px-2 py-0.5 rounded-full bg-[#111827] border border-[#374151] text-[10px] text-[#9CA3AF] font-mono">
+              PDF (Vector & Scanned)
+            </span>
+            <span className="px-2 py-0.5 rounded-full bg-[#111827] border border-[#374151] text-[10px] text-[#9CA3AF] font-mono">
+              PNG / JPEG Images
+            </span>
+            <span className="px-2 py-0.5 rounded-full bg-[#10B981]/15 border border-[#10B981]/30 text-[10px] text-[#10B981] font-mono font-semibold">
+              Max 15 MB
+            </span>
+          </div>
+
           {/* Selected File Card Preview */}
           {selectedFile && (
-            <div className="w-full max-w-md p-3.5 rounded-lg bg-[#111827] border border-[#374151] text-left space-y-3 mt-2">
+            <div className="w-full max-w-lg p-4 rounded-xl bg-[#111827] border border-[#374151] text-left space-y-3 mt-3 animate-in fade-in-0 zoom-in-95 duration-150">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <FileText className="w-4 h-4 text-[#10B981] flex-shrink-0" />
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="p-2 rounded-lg bg-[#10B981]/15 text-[#10B981]">
+                    <FileText className="w-5 h-5 flex-shrink-0" />
+                  </div>
                   <div className="truncate">
                     <p className="text-xs font-bold text-[#F9FAFB] truncate">
                       {selectedFile.name}
                     </p>
                     <p className="text-[11px] text-[#9CA3AF] font-mono tabular-nums">
-                      {(selectedFile.size / 1024).toFixed(1)} KB
+                      {(selectedFile.size / 1024).toFixed(1)} KB • Ready for cryptographic intake
                     </p>
                   </div>
                 </div>
@@ -172,16 +186,34 @@ export const IntakePage: React.FC = () => {
                     setSelectedFile(null);
                     setFileHashPreview(null);
                   }}
-                  className="text-xs text-[#9CA3AF] hover:text-[#F9FAFB]"
+                  className="text-xs text-[#9CA3AF] hover:text-[#F87171] p-1 rounded hover:bg-[#1F2937] btn-transition"
                 >
                   Clear
                 </button>
               </div>
 
               {fileHashPreview && (
-                <div className="p-2 rounded bg-[#1F2937] border border-[#374151] text-[10px] font-mono text-[#9CA3AF] break-all flex items-center gap-2">
-                  <ShieldCheck className="w-3 h-3 text-[#10B981] flex-shrink-0" />
-                  <span>SHA-256: {fileHashPreview}</span>
+                <div className="p-2.5 rounded-lg bg-[#1F2937] border border-[#374151] text-[10px] font-mono text-[#9CA3AF] break-all flex items-center gap-2">
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#10B981] flex-shrink-0" />
+                  <span>SHA-256 Digest: {fileHashPreview}</span>
+                </div>
+              )}
+
+              {uploadMutation.isPending && (
+                <div className="p-3 rounded-lg bg-[#1F2937]/80 border border-[#10B981]/30 space-y-1.5 animate-pulse">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="font-semibold text-[#10B981]">AI Extraction & Verification Pipeline</span>
+                    <span className="font-mono text-[#9CA3AF]">In Progress...</span>
+                  </div>
+                  <div className="w-full h-1.5 rounded-full bg-[#111827] overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-[#10B981] to-[#3B82F6] animate-pulse w-3/4 rounded-full" />
+                  </div>
+                  <div className="text-[10px] text-[#9CA3AF] flex justify-between font-mono pt-1">
+                    <span>1. Hash Audit</span>
+                    <span>2. Structural OCR</span>
+                    <span>3. Math Validation</span>
+                    <span>4. Gemma 2 Reasoning</span>
+                  </div>
                 </div>
               )}
 
@@ -189,16 +221,16 @@ export const IntakePage: React.FC = () => {
                 type="button"
                 disabled={uploadMutation.isPending}
                 onClick={() => uploadMutation.mutate(selectedFile)}
-                className="w-full py-2 rounded-lg bg-[#10B981] hover:bg-[#059669] text-black text-xs font-bold flex items-center justify-center gap-2 btn-transition disabled:opacity-50"
+                className="w-full py-2.5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-black text-xs font-bold flex items-center justify-center gap-2 btn-transition shadow-lg shadow-[#10B981]/20 disabled:opacity-50"
               >
                 {uploadMutation.isPending ? (
                   <>
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <RefreshCw className="w-4 h-4 animate-spin" />
                     Extracting & Running Verification...
                   </>
                 ) : (
                   <>
-                    <FileCheck className="w-3.5 h-3.5" />
+                    <FileCheck className="w-4 h-4" />
                     Extract & Verify Document
                   </>
                 )}
@@ -207,8 +239,8 @@ export const IntakePage: React.FC = () => {
           )}
 
           {errorMsg && (
-            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-[#F87171]/15 border border-[#F87171]/30 text-[#F87171] text-xs font-medium">
-              <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+            <div className="flex items-center gap-2 p-3 rounded-xl bg-[#F87171]/15 border border-[#F87171]/30 text-[#F87171] text-xs font-medium max-w-lg w-full text-left">
+              <AlertTriangle className="w-4 h-4 flex-shrink-0" />
               <span>{errorMsg}</span>
             </div>
           )}

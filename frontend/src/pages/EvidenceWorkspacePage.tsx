@@ -58,6 +58,7 @@ export const EvidenceWorkspacePage: React.FC = () => {
 
   const [activePage, setActivePage] = useState(1);
   const [zoomLevel, setZoomLevel] = useState(100);
+  const [mobileTab, setMobileTab] = useState<'both' | 'viewer' | 'fields'>('both');
   const [selectedField, setSelectedField] = useState<ExtractedFieldItem | null>(null);
   const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
@@ -184,14 +185,44 @@ export const EvidenceWorkspacePage: React.FC = () => {
             }
           />
 
-          <StatusBadge status={doc.status} />
         </div>
+      </div>
+
+      {/* Mobile Responsive Segmented Tab Switcher */}
+      <div className="flex lg:hidden items-center justify-between p-1 rounded-xl bg-[#1F2937] border border-[#374151] gap-1">
+        <button
+          type="button"
+          onClick={() => setMobileTab('both')}
+          className={`flex-1 py-1.5 text-xs font-semibold rounded-lg btn-transition ${
+            mobileTab === 'both' ? 'bg-[#10B981] text-black font-bold shadow-sm' : 'text-[#9CA3AF] hover:text-[#F9FAFB]'
+          }`}
+        >
+          Split View
+        </button>
+        <button
+          type="button"
+          onClick={() => setMobileTab('viewer')}
+          className={`flex-1 py-1.5 text-xs font-semibold rounded-lg btn-transition ${
+            mobileTab === 'viewer' ? 'bg-[#10B981] text-black font-bold shadow-sm' : 'text-[#9CA3AF] hover:text-[#F9FAFB]'
+          }`}
+        >
+          Canvas
+        </button>
+        <button
+          type="button"
+          onClick={() => setMobileTab('fields')}
+          className={`flex-1 py-1.5 text-xs font-semibold rounded-lg btn-transition ${
+            mobileTab === 'fields' ? 'bg-[#10B981] text-black font-bold shadow-sm' : 'text-[#9CA3AF] hover:text-[#F9FAFB]'
+          }`}
+        >
+          Extracted Fields ({doc.extracted_fields?.length || 0})
+        </button>
       </div>
 
       {/* Main Split-Screen Workbench (7 cols Viewer / 5 cols Panel) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         {/* Left: Interactive Document Viewer (7 cols) */}
-        <div className="lg:col-span-7 space-y-2">
+        <div className={`lg:col-span-7 space-y-2 ${mobileTab === 'fields' ? 'hidden lg:block' : 'block'}`}>
           {/* Document Viewer Toolbar */}
           <div className="p-2.5 rounded-t-xl bg-[#1F2937] border border-[#374151] border-b-0 flex items-center justify-between text-xs text-[#9CA3AF]">
             <div className="flex items-center gap-2">
@@ -331,7 +362,7 @@ export const EvidenceWorkspacePage: React.FC = () => {
         </div>
 
         {/* Right: Extracted Fields & Verification Panel (5 cols) */}
-        <div className="lg:col-span-5 space-y-3.5">
+        <div className={`lg:col-span-5 space-y-3.5 ${mobileTab === 'viewer' ? 'hidden lg:block' : 'block'}`}>
           {/* Human Review Confirmation Gate */}
           <div className="p-3.5 rounded-xl border border-[#374151] bg-[#1F2937] space-y-3">
             <div className="flex items-center justify-between">

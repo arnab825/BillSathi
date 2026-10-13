@@ -23,12 +23,14 @@ import {
   Plus,
   ShieldCheck,
   Command,
+  X,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../api/client';
 import { AccountModal } from '../account/AccountModal';
 import { CommandPalette } from '../common/CommandPalette';
 import { useToast } from '../../context/ToastContext';
+import { UserAvatar } from '../common/UserAvatar';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -197,14 +199,24 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
             )}
           </Link>
 
-          <button
-            type="button"
-            onClick={() => setCollapsed(!collapsed)}
-            className="hidden md:flex p-1.5 rounded-lg text-[#9CA3AF] hover:text-[#F9FAFB] hover:bg-[#374151] btn-transition"
-            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          >
-            {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setMobileOpen(false)}
+              className="md:hidden p-1.5 rounded-lg text-[#9CA3AF] hover:text-[#F9FAFB] hover:bg-[#374151] btn-transition"
+              title="Close navigation"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setCollapsed(!collapsed)}
+              className="hidden md:flex p-1.5 rounded-lg text-[#9CA3AF] hover:text-[#F9FAFB] hover:bg-[#374151] btn-transition"
+              title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+            </button>
+          </div>
         </div>
 
         {/* Real Workspace Switcher Header & Interactive Dropdown */}
@@ -348,9 +360,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
               onClick={() => setAccountModalOpen(true)}
               className="w-full p-2 rounded-lg hover:bg-[#283548] btn-transition flex items-center gap-2.5 text-left"
             >
-              <div className="w-8 h-8 rounded-full bg-[#10B981]/20 border border-[#10B981]/40 flex items-center justify-center text-[#10B981] font-bold text-xs flex-shrink-0">
-                {initials}
-              </div>
+              <UserAvatar avatarUrl={account?.avatar_url} name={account?.full_name} size="sm" />
               <div className="min-w-0 flex-1">
                 <div className="text-xs font-bold text-[#F9FAFB] truncate">
                   {account?.full_name || 'Alex Rivera'}
@@ -368,9 +378,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
               className="w-full flex justify-center p-1 rounded hover:bg-[#283548]"
               title={`Account: ${account?.full_name || 'Alex Rivera'}`}
             >
-              <div className="w-8 h-8 rounded-full bg-[#10B981]/20 border border-[#10B981]/40 flex items-center justify-center text-[#10B981] font-bold text-xs">
-                {initials}
-              </div>
+              <UserAvatar avatarUrl={account?.avatar_url} name={account?.full_name} size="sm" />
             </button>
           )}
         </div>
@@ -455,9 +463,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                 className="flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-[#111827] border border-transparent hover:border-[#374151] btn-transition text-left"
                 title="Account Profile & Settings"
               >
-                <div className="w-8 h-8 rounded-full bg-[#10B981]/20 border border-[#10B981]/40 flex items-center justify-center text-[#10B981] text-xs font-bold shadow-sm">
-                  {initials}
-                </div>
+                <UserAvatar avatarUrl={account?.avatar_url} name={account?.full_name} size="sm" />
                 <div className="hidden xl:block">
                   <div className="text-xs font-bold text-[#F9FAFB] leading-none">
                     {account?.full_name || 'Alex Rivera'}
@@ -475,21 +481,24 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
 
               {/* Floating User Menu Popover */}
               {userMenuOpen && (
-                <div className="absolute right-0 top-12 z-50 w-64 p-2 rounded-2xl bg-[#1F2937]/98 border border-[#374151] shadow-2xl backdrop-blur-xl animate-in fade-in-0 zoom-in-95 duration-150 space-y-2">
-                  <div className="p-2.5 rounded-xl bg-[#111827] border border-[#374151]/80 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-[#F9FAFB]">
-                        {account?.full_name || 'Alex Rivera'}
-                      </span>
-                      <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30">
-                        {account?.role || 'Admin'}
-                      </span>
-                    </div>
-                    <div className="text-[11px] text-[#9CA3AF] truncate">
-                      {account?.email || 'alex@rivera.tech'}
-                    </div>
-                    <div className="text-[10px] font-mono text-[#10B981] pt-0.5 truncate">
-                      {account?.business_name || 'Rivera Digital Labs LLC'} • {account?.tax_id || 'EIN-84-2918471'}
+                <div className="absolute right-0 top-12 z-50 w-72 p-2 rounded-2xl bg-[#1F2937]/98 border border-[#374151] shadow-2xl backdrop-blur-xl animate-in fade-in-0 zoom-in-95 duration-150 space-y-2">
+                  <div className="p-2.5 rounded-xl bg-[#111827] border border-[#374151]/80 flex items-center gap-3">
+                    <UserAvatar avatarUrl={account?.avatar_url} name={account?.full_name} size="md" />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-[#F9FAFB] truncate">
+                          {account?.full_name || 'Alex Rivera'}
+                        </span>
+                        <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30 flex-shrink-0">
+                          {account?.role || 'Admin'}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-[#9CA3AF] truncate">
+                        {account?.email || 'alex@rivera.tech'}
+                      </div>
+                      <div className="text-[10px] font-mono text-[#10B981] pt-0.5 truncate">
+                        {activeWorkspace?.name || account?.business_name || 'Rivera Digital Labs LLC'}
+                      </div>
                     </div>
                   </div>
 

@@ -58,6 +58,7 @@ def serialize_account(account: UserAccount) -> UserAccountResponse:
         accountant_email=account.accountant_email,
         fiscal_year_start=account.fiscal_year_start,
         active_workspace_id=account.active_workspace_id,
+        avatar_url=account.avatar_url,
         workspaces=workspaces,
         created_at=account.created_at,
         updated_at=account.updated_at,
