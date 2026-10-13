@@ -1,4 +1,13 @@
 services:
+  ollama:
+    image: docker.io/ollama/ollama:latest
+    container_name: billsathi-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+    restart: unless-stopped
+
   backend:
     build:
       context: .
@@ -8,8 +17,7 @@ services:
       - "8000:8000"
     environment:
       - DATABASE_URL=sqlite:////app/data/billsathi.db
-      # On Podman / Docker Desktop for Windows, host.containers.internal or host.docker.internal resolves to the host machine
-      - OLLAMA_BASE_URL=http://host.containers.internal:11434
+      - OLLAMA_BASE_URL=http://billsathi-ollama:11434
       - OLLAMA_MODEL=gemma2:2b
       - OLLAMA_TIMEOUT_SECONDS=45.0
       - ENVIRONMENT=development
@@ -18,6 +26,8 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - ./backend/data:/app/data
+    depends_on:
+      - ollama
     restart: unless-stopped
 
   frontend:
@@ -35,3 +45,5 @@ services:
 
 volumes:
   billsathi-data:
+  ollama-models:
+
