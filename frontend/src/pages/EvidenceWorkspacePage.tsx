@@ -72,10 +72,12 @@ export const EvidenceWorkspacePage: React.FC = () => {
     }
   }, [account?.full_name]);
 
-  // When doc changes, select first field
+  // When doc changes, select vendor_name or first field with physical evidence
   useEffect(() => {
     if (doc?.extracted_fields && doc.extracted_fields.length > 0) {
-      setSelectedField(doc.extracted_fields[0]);
+      const vendorField = doc.extracted_fields.find((f) => f.field_name === 'vendor_name');
+      const firstBboxField = doc.extracted_fields.find((f) => !!f.bbox_json);
+      setSelectedField(vendorField || firstBboxField || doc.extracted_fields[0]);
     }
   }, [doc]);
 
@@ -297,36 +299,48 @@ export const EvidenceWorkspacePage: React.FC = () => {
           </div>
 
           {/* Canvas Viewport with Realistic Document Framing */}
-          <div className="relative rounded-b-xl border border-[#374151] bg-[#0b101b] overflow-auto max-h-[660px] flex items-center justify-center p-3 sm:p-5">
+          <div className="relative rounded-b-xl border border-[#374151] bg-[#090d16] overflow-auto min-h-[540px] max-h-[calc(100vh-210px)] flex flex-col items-center justify-start p-4 sm:p-6 lg:p-8">
             <div
-              className="relative transition-transform duration-150 origin-top shadow-2xl rounded-lg overflow-hidden border border-slate-700/80 ring-1 ring-white/10 bg-white"
+              className="relative transition-transform duration-150 origin-top shadow-[0_25px_60px_-12px_rgba(0,0,0,0.95),0_0_0_1px_rgba(255,255,255,0.15)] rounded-sm bg-white p-[1px] ring-1 ring-slate-600/60 my-auto"
               style={{ transform: `scale(${zoomLevel / 100})` }}
             >
               <img
                 src={`/api/documents/${doc.id}/preview/${activePage}`}
                 alt="Document Page Preview"
-                className="w-full max-w-full sm:max-w-[580px] h-auto object-contain select-none block"
+                className="w-full max-w-[650px] lg:max-w-[720px] h-auto object-contain select-none block rounded-[2px]"
                 onError={(e) => {
                   (e.target as HTMLElement).style.display = 'none';
                 }}
               />
 
               {/* Bounding Box Visual Overlay */}
-              {parsedBbox && selectedField?.page_number === activePage && (
-                <div
-                  className="absolute pointer-events-none transition-all duration-160 ease-out border-2 border-[#10B981] bg-[#10B981]/15 rounded-sm shadow-[0_0_0_1px_rgba(0,0,0,0.5)]"
-                  style={{
-                    left: `${(parsedBbox[0] / 612) * 100}%`,
-                    top: `${(parsedBbox[1] / 792) * 100}%`,
-                    width: `${((parsedBbox[2] - parsedBbox[0]) / 612) * 100}%`,
-                    height: `${((parsedBbox[3] - parsedBbox[1]) / 792) * 100}%`,
-                  }}
-                >
-                  <div className="absolute -top-5 left-0 px-1.5 py-0.5 rounded bg-[#10B981] text-black font-mono text-[9px] font-bold shadow-md whitespace-nowrap">
-                    {selectedField.field_name}: {selectedField.normalized_value}
+              {parsedBbox && selectedField?.page_number === activePage && (() => {
+                const leftPct = (parsedBbox[0] / 612) * 100;
+                const topPct = (parsedBbox[1] / 792) * 100;
+                const widthPct = ((parsedBbox[2] - parsedBbox[0]) / 612) * 100;
+                const heightPct = ((parsedBbox[3] - parsedBbox[1]) / 792) * 100;
+                const isNearTop = topPct < 8;
+
+                return (
+                  <div
+                    className="absolute pointer-events-none transition-all duration-160 ease-out border-2 border-[#10B981] bg-[#10B981]/15 rounded-sm shadow-[0_0_0_1px_rgba(0,0,0,0.6),0_0_15px_rgba(16,185,129,0.35)]"
+                    style={{
+                      left: `${leftPct}%`,
+                      top: `${topPct}%`,
+                      width: `${widthPct}%`,
+                      height: `${heightPct}%`,
+                    }}
+                  >
+                    <div
+                      className={`absolute left-0 px-2 py-0.5 rounded bg-[#10B981] text-black font-mono text-[9px] font-bold shadow-lg whitespace-nowrap z-20 ${
+                        isNearTop ? 'top-full mt-1.5' : '-top-5'
+                      }`}
+                    >
+                      {selectedField.field_name}: {selectedField.normalized_value}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
             </div>
           </div>
 

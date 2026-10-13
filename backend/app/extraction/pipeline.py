@@ -29,6 +29,7 @@ async def process_document_pipeline(
     """
     try:
         document.status = "Processing"
+        document.error_message = None
         db.commit()
 
         file_path = Path(document.file_path)

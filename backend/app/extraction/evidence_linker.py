@@ -55,7 +55,7 @@ def link_evidence_for_fields(
         ("subtotal", [llm_output.subtotal or "", llm_output.source_snippets.get("subtotal", "")]),
         ("tax", [llm_output.tax_amount or "", llm_output.source_snippets.get("tax_amount", "")]),
         ("total", [llm_output.total_amount or "", llm_output.source_snippets.get("total_amount", "")]),
-        ("category", [llm_output.category_suggestion or ""]),
+        ("category", [f"category: {llm_output.category_suggestion}" if llm_output.category_suggestion else ""]),
         ("description", [llm_output.description or "", llm_output.source_snippets.get("description", "")]),
         ("payment_terms", [llm_output.payment_terms or "", llm_output.source_snippets.get("payment_terms", "")]),
     ]
@@ -80,7 +80,7 @@ def link_evidence_for_fields(
         validation_status = "valid"
         if not val and field_name in ["vendor_name", "total", "invoice_date"]:
             validation_status = "warning"
-        elif not bbox:
+        elif not bbox and field_name not in ["category", "currency"]:
             validation_status = "unverified"
 
         results.append({
