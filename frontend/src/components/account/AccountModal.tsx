@@ -163,7 +163,8 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose }) =
           ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, 256, 256);
           const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
           setAvatarUrl(dataUrl);
-          toast.success('Profile Photo Loaded', 'Preview updated. Click "Save Account Profile" to commit to database.');
+          updateMutation.mutate({ avatar_url: dataUrl });
+          toast.success('Profile Photo Updated', 'Saved directly to Podman SQLite.');
         }
       };
       img.src = readerEvent.target?.result as string;
@@ -220,7 +221,11 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose }) =
             {avatarUrl && (
               <button
                 type="button"
-                onClick={() => setAvatarUrl(null)}
+                onClick={() => {
+                  setAvatarUrl(null);
+                  updateMutation.mutate({ avatar_url: null });
+                  toast.info('Avatar Cleared', 'Reset to initials.');
+                }}
                 className="text-xs text-[#F87171] hover:underline flex items-center gap-1 font-semibold"
               >
                 <Trash2 className="w-3 h-3" />
@@ -273,7 +278,10 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose }) =
                     <button
                       key={preset.id}
                       type="button"
-                      onClick={() => setAvatarUrl(preset.url)}
+                      onClick={() => {
+                        setAvatarUrl(preset.url);
+                        updateMutation.mutate({ avatar_url: preset.url });
+                      }}
                       className={`relative rounded-full p-0.5 border-2 transition-all flex-shrink-0 ${
                         avatarUrl === preset.url
                           ? 'border-[#10B981] scale-105 shadow-sm'

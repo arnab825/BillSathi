@@ -26,6 +26,7 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - ./backend/data:/app/data
+      - ./backend/app:/app/app
     depends_on:
       - ollama
     restart: unless-stopped

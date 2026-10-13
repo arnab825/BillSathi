@@ -114,7 +114,8 @@ export const SettingsPage: React.FC = () => {
           ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, 256, 256);
           const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
           setAvatarUrl(dataUrl);
-          toast.success('Photo Loaded', 'Click "Save Entity Profile" below to commit to database.');
+          updateAccountMutation.mutate({ avatar_url: dataUrl });
+          toast.success('Photo Uploaded', 'Avatar photo saved directly to Podman SQLite.');
         }
       };
       img.src = readerEvent.target?.result as string;
@@ -224,7 +225,11 @@ export const SettingsPage: React.FC = () => {
                 {avatarUrl && (
                   <button
                     type="button"
-                    onClick={() => setAvatarUrl(null)}
+                    onClick={() => {
+                      setAvatarUrl(null);
+                      updateAccountMutation.mutate({ avatar_url: null });
+                      toast.info('Avatar Cleared', 'Reset to initials.');
+                    }}
                     className="text-xs text-[#F87171] hover:underline flex items-center gap-1 font-semibold"
                   >
                     <Trash2 className="w-3 h-3" />
@@ -278,7 +283,10 @@ export const SettingsPage: React.FC = () => {
                         <button
                           key={preset.id}
                           type="button"
-                          onClick={() => setAvatarUrl(preset.url)}
+                          onClick={() => {
+                            setAvatarUrl(preset.url);
+                            updateAccountMutation.mutate({ avatar_url: preset.url });
+                          }}
                           className={`relative rounded-full p-0.5 border-2 transition-all flex-shrink-0 cursor-pointer ${
                             avatarUrl === preset.url
                               ? 'border-[#10B981] scale-110 shadow-sm'
