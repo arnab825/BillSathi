@@ -5,22 +5,26 @@ import {
   Eye,
   CheckCircle2,
   AlertTriangle,
+  AlertCircle,
   Edit2,
   Save,
   X,
   FileText,
   ChevronLeft,
   ChevronRight,
-  ShieldCheck,
   Calculator,
-  ArrowRight,
-  Clock,
+  ExternalLink,
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
+  ShieldCheck,
+  CheckCheck,
+  UserCheck,
   Sparkles,
   RefreshCw,
-  ExternalLink,
 } from 'lucide-react';
-import { api, ExtractedFieldItem, FinancialRecordItem } from '../api/client';
-import { StatusBadge, formatCents } from '../components/common/StatusBadge';
+import { api, ExtractedFieldItem } from '../api/client';
+import { StatusBadge, VerificationTierBadge, formatCents } from '../components/common/StatusBadge';
 
 export const EvidenceWorkspacePage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -37,13 +41,14 @@ export const EvidenceWorkspacePage: React.FC = () => {
   const selectedDocId = docIdParam || (documents && documents.length > 0 ? documents[0].id : null);
 
   // Fetch active document detail
-  const { data: doc, isLoading, refetch } = useQuery({
+  const { data: doc, isLoading } = useQuery({
     queryKey: ['documentDetail', selectedDocId],
     queryFn: () => (selectedDocId ? api.getDocument(selectedDocId) : null),
     enabled: !!selectedDocId,
   });
 
   const [activePage, setActivePage] = useState(1);
+  const [zoomLevel, setZoomLevel] = useState(100);
   const [selectedField, setSelectedField] = useState<ExtractedFieldItem | null>(null);
   const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
@@ -80,10 +85,10 @@ export const EvidenceWorkspacePage: React.FC = () => {
 
   if (!selectedDocId || isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="flex flex-col items-center gap-3">
-          <RefreshCw className="w-8 h-8 text-indigo-500 animate-spin" />
-          <p className="text-sm text-slate-400">Loading document evidence workspace...</p>
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <div className="flex flex-col items-center gap-2">
+          <RefreshCw className="w-6 h-6 text-[#10B981] animate-spin" />
+          <p className="text-xs text-[#9CA3AF]">Loading evidence workbench...</p>
         </div>
       </div>
     );
@@ -91,9 +96,9 @@ export const EvidenceWorkspacePage: React.FC = () => {
 
   if (!doc) {
     return (
-      <div className="p-12 text-center text-slate-400">
-        <p>No document found. Please upload a document in Intake or load demo invoices.</p>
-        <Link to="/intake" className="text-indigo-400 hover:underline mt-2 inline-block">
+      <div className="p-12 text-center text-[#9CA3AF]">
+        <p>No document selected. Upload a file in Intake or seed demo invoices.</p>
+        <Link to="/intake" className="text-[#10B981] hover:underline mt-2 inline-block">
           Go to Intake
         </Link>
       </div>
@@ -121,31 +126,29 @@ export const EvidenceWorkspacePage: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-4 pb-8">
       {/* Top Header & Document Switcher */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#374151] pb-3">
+        <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h1 className="text-xl md:text-2xl font-bold text-white flex items-center gap-2">
-              <Eye className="w-5 h-5 text-indigo-400" />
-              Evidence Workspace
+            <h1 className="text-lg sm:text-xl font-bold tracking-tight text-[#F9FAFB] truncate">
+              Evidence Review Workspace
             </h1>
-            <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/30">
+            <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30">
               Proof Before Trust
             </span>
           </div>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Document ID: <span className="font-mono">{doc.id}</span> • Hash:{' '}
-            <span className="font-mono">{doc.file_hash.substring(0, 16)}...</span>
+          <p className="text-xs text-[#9CA3AF] mt-0.5 font-mono truncate">
+            {doc.filename} • ID: {doc.id.substring(0, 8)} • SHA-256: {doc.file_hash.substring(0, 16)}...
           </p>
         </div>
 
-        {/* Switch Document Dropdown */}
-        <div className="flex items-center gap-3">
+        {/* Switch Document Dropdown & Document Status */}
+        <div className="flex items-center gap-2 flex-shrink-0">
           <select
             value={doc.id}
             onChange={(e) => setSearchParams({ docId: e.target.value })}
-            className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 text-xs font-semibold focus:outline-none focus:border-indigo-500"
+            className="px-2.5 py-1.5 rounded-lg bg-[#111827] border border-[#374151] text-[#F9FAFB] text-xs font-medium focus:outline-none focus:border-[#10B981] btn-transition"
           >
             {documents?.map((d) => (
               <option key={d.id} value={d.id}>
@@ -158,146 +161,238 @@ export const EvidenceWorkspacePage: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Split-Screen Workbench */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      {/* Main Split-Screen Workbench (7 cols Viewer / 5 cols Panel) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         {/* Left: Interactive Document Viewer (7 cols) */}
-        <div className="lg:col-span-7 space-y-3">
-          <div className="flex items-center justify-between px-2 text-xs text-slate-400">
-            <span className="font-semibold text-slate-300 flex items-center gap-1.5">
-              <FileText className="w-3.5 h-3.5 text-indigo-400" />
-              Source Document (Page {activePage} of {doc.page_count})
-            </span>
+        <div className="lg:col-span-7 space-y-2">
+          {/* Document Viewer Toolbar */}
+          <div className="p-2.5 rounded-t-xl bg-[#1F2937] border border-[#374151] border-b-0 flex items-center justify-between text-xs text-[#9CA3AF]">
+            <div className="flex items-center gap-2">
+              <FileText className="w-3.5 h-3.5 text-[#10B981]" />
+              <span className="font-semibold text-[#F9FAFB]">
+                Document Canvas (Page {activePage} of {doc.page_count})
+              </span>
+            </div>
 
-            {doc.page_count > 1 && (
-              <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2">
+              {/* Zoom controls */}
+              <div className="flex items-center gap-1 bg-[#111827] px-1.5 py-0.5 rounded border border-[#374151]">
                 <button
-                  disabled={activePage <= 1}
-                  onClick={() => setActivePage((p) => p - 1)}
-                  className="p-1 rounded bg-slate-800 disabled:opacity-40"
+                  type="button"
+                  onClick={() => setZoomLevel((z) => Math.max(z - 15, 60))}
+                  className="p-1 hover:text-[#F9FAFB]"
+                  title="Zoom Out"
                 >
-                  <ChevronLeft className="w-3.5 h-3.5" />
+                  <ZoomOut className="w-3 h-3" />
                 </button>
-                <span className="px-1 font-mono text-[11px]">{activePage}</span>
+                <span className="font-mono text-[10px] w-8 text-center">{zoomLevel}%</span>
                 <button
-                  disabled={activePage >= doc.page_count}
-                  onClick={() => setActivePage((p) => p + 1)}
-                  className="p-1 rounded bg-slate-800 disabled:opacity-40"
+                  type="button"
+                  onClick={() => setZoomLevel((z) => Math.min(z + 15, 160))}
+                  className="p-1 hover:text-[#F9FAFB]"
+                  title="Zoom In"
                 >
-                  <ChevronRight className="w-3.5 h-3.5" />
+                  <ZoomIn className="w-3 h-3" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setZoomLevel(100)}
+                  className="p-1 hover:text-[#F9FAFB] border-l border-[#374151] pl-1.5"
+                  title="Reset Zoom"
+                >
+                  <Maximize2 className="w-3 h-3" />
                 </button>
               </div>
-            )}
+
+              {/* Page navigation */}
+              {doc.page_count > 1 && (
+                <div className="flex items-center gap-1 bg-[#111827] px-1 py-0.5 rounded border border-[#374151]">
+                  <button
+                    disabled={activePage <= 1}
+                    onClick={() => setActivePage((p) => p - 1)}
+                    className="p-0.5 rounded disabled:opacity-40 hover:text-[#F9FAFB]"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                  </button>
+                  <span className="px-1 font-mono text-[10px]">{activePage}</span>
+                  <button
+                    disabled={activePage >= doc.page_count}
+                    onClick={() => setActivePage((p) => p + 1)}
+                    className="p-0.5 rounded disabled:opacity-40 hover:text-[#F9FAFB]"
+                  >
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+
+              <a
+                href={`/api/documents/${doc.id}/file`}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1 text-[11px] text-[#9CA3AF] hover:text-[#10B981] ml-1"
+                title="Open original file"
+              >
+                <span>Raw</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
           </div>
 
-          {/* Interactive Document Image Container */}
-          <div className="relative rounded-2xl border border-slate-800 bg-slate-950 p-2 overflow-hidden shadow-2xl">
-            <div className="relative w-full rounded-xl overflow-hidden bg-slate-900 flex items-center justify-center min-h-[500px]">
+          {/* Canvas Viewport */}
+          <div className="relative rounded-b-xl border border-[#374151] bg-[#111827] overflow-auto max-h-[640px] flex items-center justify-center p-3">
+            <div
+              className="relative transition-transform duration-150 origin-top shadow-xl"
+              style={{ transform: `scale(${zoomLevel / 100})` }}
+            >
               <img
                 src={`/api/documents/${doc.id}/preview/${activePage}`}
-                alt="Document Preview"
-                className="w-full h-auto object-contain select-none"
+                alt="Document Page Preview"
+                className="w-full max-w-[620px] h-auto object-contain select-none rounded bg-white"
                 onError={(e) => {
                   (e.target as HTMLElement).style.display = 'none';
                 }}
               />
 
-              {/* Bounding Box Overlay Marker */}
+              {/* Bounding Box Visual Overlay */}
               {parsedBbox && selectedField?.page_number === activePage && (
                 <div
-                  className="absolute pointer-events-none transition-all duration-300 border-2 border-indigo-400 bg-indigo-500/20 rounded shadow-[0_0_15px_rgba(99,102,241,0.6)] animate-pulse"
+                  className="absolute pointer-events-none transition-all duration-160 ease-out border-2 border-[#10B981] bg-[#10B981]/15 rounded-sm shadow-[0_0_0_1px_rgba(0,0,0,0.5)]"
                   style={{
-                    // PDF coordinates are typically 0..612 x 0..792 points. We compute percentage mapping.
                     left: `${(parsedBbox[0] / 612) * 100}%`,
                     top: `${(parsedBbox[1] / 792) * 100}%`,
                     width: `${((parsedBbox[2] - parsedBbox[0]) / 612) * 100}%`,
                     height: `${((parsedBbox[3] - parsedBbox[1]) / 792) * 100}%`,
                   }}
                 >
-                  <div className="absolute -top-6 left-0 px-2 py-0.5 rounded bg-indigo-600 text-white font-mono text-[10px] font-bold shadow whitespace-nowrap">
+                  <div className="absolute -top-5 left-0 px-1.5 py-0.5 rounded bg-[#10B981] text-black font-mono text-[9px] font-bold shadow-md whitespace-nowrap">
                     {selectedField.field_name}: {selectedField.normalized_value}
                   </div>
                 </div>
               )}
             </div>
+          </div>
 
-            {/* Selected Evidence Snippet Bar */}
-            <div className="mt-3 p-3 rounded-xl bg-slate-900 border border-slate-800 text-xs flex items-start justify-between gap-3">
-              <div className="space-y-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] uppercase font-bold text-slate-500">
-                    Target Evidence
+          {/* Active Evidence Snippet Bar */}
+          <div className="p-3 rounded-lg bg-[#1F2937] border border-[#374151] text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="space-y-0.5 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] uppercase font-bold text-[#9CA3AF]">
+                  Source Evidence
+                </span>
+                <span className="font-bold text-[#10B981]">
+                  {selectedField?.field_name || 'Select a field on the right'}
+                </span>
+                {parsedBbox ? (
+                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30 font-mono">
+                    Bounding Box Linked
                   </span>
-                  <span className="font-bold text-indigo-400">
-                    {selectedField?.field_name || 'Select a field on the right'}
+                ) : (
+                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-[#374151] text-[#9CA3AF] font-mono">
+                    Context Inferred
                   </span>
-                  {parsedBbox ? (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-mono">
-                      Coordinates Verified
-                    </span>
-                  ) : (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">
-                      Context Inferred (No Direct Box)
-                    </span>
-                  )}
-                </div>
-                <p className="text-slate-300 font-mono text-[11px] truncate">
-                  "{selectedField?.original_text || 'No text snippet available'}"
-                </p>
+                )}
               </div>
-
-              <a
-                href={`/api/documents/${doc.id}/file`}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-indigo-400 flex-shrink-0"
-              >
-                <span>Raw File</span>
-                <ExternalLink className="w-3 h-3" />
-              </a>
+              <p className="text-[#F9FAFB] font-mono text-[11px] truncate">
+                "{selectedField?.original_text || 'No verbatim source snippet available'}"
+              </p>
             </div>
+
+            <span className="text-[10px] text-[#6B7280] font-mono self-end sm:self-center">
+              Page {selectedField?.page_number || 1}
+            </span>
           </div>
         </div>
 
         {/* Right: Extracted Fields & Verification Panel (5 cols) */}
-        <div className="lg:col-span-5 space-y-4">
+        <div className="lg:col-span-5 space-y-3.5">
+          {/* Human Review Confirmation Gate */}
+          <div className="p-3.5 rounded-xl border border-[#374151] bg-[#1F2937] space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-[#F9FAFB] uppercase tracking-wider">
+                Human Verification Gate
+              </span>
+              <StatusBadge status={fin?.status || 'Needs review'} size="sm" />
+            </div>
+
+            {isConfirmed ? (
+              <div className="p-3 rounded-lg bg-[#10B981]/10 border border-[#10B981]/30 text-xs text-[#10B981] flex items-center gap-2.5">
+                <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                <div>
+                  <p className="font-bold">Confirmed as Financial Fact</p>
+                  <p className="text-[11px] text-[#10B981]/80 mt-0.5">
+                    Confirmed by {fin?.confirmed_by} • Ready for CSV export
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-xs text-[#9CA3AF] leading-snug">
+                  Inspect source evidence on the canvas. Correct any misread values. Confirming promotes this document to a verified financial record.
+                </p>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={reviewerName}
+                    onChange={(e) => setReviewerName(e.target.value)}
+                    className="flex-1 px-2.5 py-1.5 rounded-lg bg-[#111827] border border-[#374151] text-xs text-[#F9FAFB] focus:outline-none focus:border-[#10B981]"
+                    placeholder="Reviewer Name"
+                  />
+
+                  {fin && (
+                    <button
+                      type="button"
+                      disabled={confirmMutation.isPending}
+                      onClick={() => confirmMutation.mutate(fin.id)}
+                      className="px-3.5 py-1.5 rounded-lg bg-[#10B981] hover:bg-[#059669] text-black text-xs font-bold flex items-center gap-1.5 btn-transition disabled:opacity-50"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Confirm Record
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Arithmetic Verification Card */}
           <div
-            className={`p-4 rounded-xl border transition-all ${
+            className={`p-3.5 rounded-xl border transition-all ${
               hasMathMismatch
-                ? 'bg-rose-950/30 border-rose-500/40'
-                : 'bg-slate-900/80 border-slate-800'
+                ? 'bg-[#F87171]/10 border-[#F87171]/40'
+                : 'bg-[#1F2937] border-[#374151]'
             }`}
           >
             <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-200">
-                <Calculator className="w-4 h-4 text-indigo-400" />
+              <div className="flex items-center gap-1.5 text-xs font-bold text-[#F9FAFB]">
+                <Calculator className="w-3.5 h-3.5 text-[#10B981]" />
                 <span>Deterministic Arithmetic Check</span>
               </div>
               {hasMathMismatch ? (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#F87171]/20 text-[#F87171] border border-[#F87171]/30">
                   Mismatch Detected
                 </span>
               ) : (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                  Math Consistent
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30">
+                  Math Verified
                 </span>
               )}
             </div>
 
-            <div className="grid grid-cols-3 gap-2 text-center text-xs font-mono py-1 bg-slate-950/60 rounded-lg border border-slate-800/80">
+            <div className="grid grid-cols-3 gap-2 text-center text-xs font-mono py-1.5 bg-[#111827] rounded-lg border border-[#374151]">
               <div className="p-1">
-                <div className="text-[10px] text-slate-400 font-sans">Subtotal</div>
-                <div className="font-bold text-slate-200">{formatCents(subtotalCents)}</div>
+                <div className="text-[10px] text-[#9CA3AF] font-sans">Subtotal</div>
+                <div className="font-bold text-[#F9FAFB] tabular-nums">{formatCents(subtotalCents)}</div>
               </div>
-              <div className="p-1 border-x border-slate-800">
-                <div className="text-[10px] text-slate-400 font-sans">+ Tax</div>
-                <div className="font-bold text-slate-200">{formatCents(taxCents)}</div>
+              <div className="p-1 border-x border-[#374151]">
+                <div className="text-[10px] text-[#9CA3AF] font-sans">+ Tax</div>
+                <div className="font-bold text-[#F9FAFB] tabular-nums">{formatCents(taxCents)}</div>
               </div>
               <div className="p-1">
-                <div className="text-[10px] text-slate-400 font-sans">= Total</div>
+                <div className="text-[10px] text-[#9CA3AF] font-sans">= Total</div>
                 <div
-                  className={`font-bold ${
-                    hasMathMismatch ? 'text-rose-400' : 'text-emerald-400'
+                  className={`font-bold tabular-nums ${
+                    hasMathMismatch ? 'text-[#F87171]' : 'text-[#10B981]'
                   }`}
                 >
                   {formatCents(totalCents)}
@@ -306,29 +401,33 @@ export const EvidenceWorkspacePage: React.FC = () => {
             </div>
 
             {hasMathMismatch && (
-              <p className="text-[11px] text-rose-300 mt-2 leading-tight">
-                Calculated {formatCents(mathExpected)} vs printed {formatCents(totalCents)} (Diff:{' '}
-                {formatCents(Math.abs(totalCents - mathExpected))}). Please verify line items.
+              <p className="text-[11px] text-[#F87171] mt-2 leading-tight">
+                Calculated {formatCents(mathExpected)} vs printed {formatCents(totalCents)} (Discrepancy: {formatCents(Math.abs(totalCents - mathExpected))}). Please inspect line items.
               </p>
             )}
           </div>
 
-          {/* Extracted Fields List with Proof Before Trust Linking */}
-          <div className="rounded-xl border border-slate-800 bg-slate-900/80 overflow-hidden shadow-lg">
-            <div className="p-3.5 border-b border-slate-800 flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-200 uppercase tracking-wider">
+          {/* Extracted Fields List with Tier Badges */}
+          <div className="rounded-xl border border-[#374151] bg-[#1F2937] overflow-hidden">
+            <div className="p-3 border-b border-[#374151] flex items-center justify-between">
+              <span className="text-xs font-bold text-[#F9FAFB] uppercase tracking-wider">
                 Extracted Fields ({doc.extracted_fields?.length ?? 0})
               </span>
-              <span className="text-[10px] text-slate-400 font-sans">
-                Click field to locate evidence
-              </span>
+              <span className="text-[10px] text-[#9CA3AF]">Click field to locate evidence</span>
             </div>
 
-            <div className="divide-y divide-slate-800/60 max-h-[460px] overflow-y-auto">
+            <div className="divide-y divide-[#374151] max-h-[420px] overflow-y-auto">
               {doc.extracted_fields?.map((field) => {
                 const isSelected = selectedField?.id === field.id;
                 const isEditing = editingFieldId === field.id;
                 const displayVal = field.user_corrected_value || field.normalized_value || '—';
+
+                // Verification Tier: human_confirmed, validated, or ai_extracted
+                const tier = field.is_corrected
+                  ? 'human_confirmed'
+                  : field.validation_status === 'valid'
+                  ? 'validated'
+                  : 'ai_extracted';
 
                 return (
                   <div
@@ -337,22 +436,18 @@ export const EvidenceWorkspacePage: React.FC = () => {
                       setSelectedField(field);
                       setActivePage(field.page_number || 1);
                     }}
-                    className={`p-3 transition-colors cursor-pointer ${
+                    className={`p-3 btn-transition cursor-pointer ${
                       isSelected
-                        ? 'bg-indigo-600/15 border-l-4 border-indigo-500'
-                        : 'hover:bg-slate-800/40'
+                        ? 'bg-[#10B981]/10 border-l-2 border-[#10B981]'
+                        : 'hover:bg-[#283548]'
                     }`}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-slate-300 capitalize">
+                        <span className="text-xs font-semibold text-[#F9FAFB] capitalize">
                           {field.field_name.replace(/_/g, ' ')}
                         </span>
-                        {field.is_corrected && (
-                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-400 border border-amber-500/30 font-medium">
-                            Corrected
-                          </span>
-                        )}
+                        <VerificationTierBadge tier={tier} />
                       </div>
 
                       <div className="flex items-center gap-1">
@@ -363,7 +458,7 @@ export const EvidenceWorkspacePage: React.FC = () => {
                               e.stopPropagation();
                               setEditingFieldId(null);
                             }}
-                            className="p-1 rounded text-slate-400 hover:text-slate-200"
+                            className="p-1 rounded text-[#9CA3AF] hover:text-[#F9FAFB]"
                           >
                             <X className="w-3.5 h-3.5" />
                           </button>
@@ -376,7 +471,7 @@ export const EvidenceWorkspacePage: React.FC = () => {
                               setEditValue(field.user_corrected_value || field.normalized_value || '');
                               setEditNote('');
                             }}
-                            className="p-1 rounded text-slate-500 hover:text-indigo-400 transition-colors"
+                            className="p-1 rounded text-[#9CA3AF] hover:text-[#10B981] btn-transition"
                             title="Edit this field"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
@@ -391,14 +486,14 @@ export const EvidenceWorkspacePage: React.FC = () => {
                           type="text"
                           value={editValue}
                           onChange={(e) => setEditValue(e.target.value)}
-                          className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-indigo-500/50 text-xs text-white font-mono focus:outline-none"
+                          className="w-full px-2.5 py-1.5 rounded-lg bg-[#111827] border border-[#10B981] text-xs text-[#F9FAFB] font-mono focus:outline-none"
                           placeholder="Corrected value"
                         />
                         <input
                           type="text"
                           value={editNote}
                           onChange={(e) => setEditNote(e.target.value)}
-                          className="w-full px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-700 text-[11px] text-slate-300 focus:outline-none"
+                          className="w-full px-2.5 py-1 rounded-lg bg-[#111827] border border-[#374151] text-[11px] text-[#9CA3AF] focus:outline-none"
                           placeholder="Audit note (e.g. verified on page 1)"
                         />
                         <button
@@ -411,7 +506,7 @@ export const EvidenceWorkspacePage: React.FC = () => {
                             })
                           }
                           disabled={updateFieldMutation.isPending}
-                          className="w-full py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
+                          className="w-full py-1.5 rounded-lg bg-[#10B981] hover:bg-[#059669] text-black text-xs font-bold flex items-center justify-center gap-1.5 btn-transition"
                         >
                           <Save className="w-3.5 h-3.5" />
                           Save Correction
@@ -419,10 +514,10 @@ export const EvidenceWorkspacePage: React.FC = () => {
                       </div>
                     ) : (
                       <div className="mt-1 flex items-baseline justify-between">
-                        <span className="text-xs font-mono font-semibold text-white truncate max-w-[240px]">
+                        <span className="text-xs font-mono font-bold text-[#F9FAFB] truncate max-w-[220px] tabular-nums">
                           {displayVal}
                         </span>
-                        <span className="text-[10px] text-slate-500 font-mono">
+                        <span className="text-[10px] text-[#6B7280] font-mono">
                           {field.extraction_method}
                         </span>
                       </div>
@@ -431,57 +526,6 @@ export const EvidenceWorkspacePage: React.FC = () => {
                 );
               })}
             </div>
-          </div>
-
-          {/* Human Confirmation Section */}
-          <div className="p-4 rounded-xl border border-slate-800 bg-slate-900/80 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-200 uppercase tracking-wider">
-                Human Review Gate
-              </span>
-              <StatusBadge status={fin?.status || 'Needs review'} size="sm" />
-            </div>
-
-            {isConfirmed ? (
-              <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-300 flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-emerald-400" />
-                <div>
-                  <p className="font-semibold">Confirmed as Verified Financial Record</p>
-                  <p className="text-[10px] text-emerald-400/80 mt-0.5">
-                    Confirmed by {fin?.confirmed_by} • Ready for CSV Bookkeeping Export
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <p className="text-xs text-slate-400 leading-snug">
-                  Inspect the source document on the left. Correct any misread values above.
-                  Confirming establishes this document as verified for bookkeeping.
-                </p>
-
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={reviewerName}
-                    onChange={(e) => setReviewerName(e.target.value)}
-                    className="w-1/2 px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-slate-200"
-                    placeholder="Reviewer Name"
-                  />
-
-                  {fin && (
-                    <button
-                      type="button"
-                      disabled={confirmMutation.isPending}
-                      onClick={() => confirmMutation.mutate(fin.id)}
-                      className="w-1/2 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/30 flex items-center justify-center gap-1.5 transition-all"
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      Confirm Record
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>

@@ -10,10 +10,10 @@ import {
   Eye,
   RefreshCw,
   ShieldCheck,
-  CheckCircle2,
   HardDrive,
+  Check,
 } from 'lucide-react';
-import { api, DocumentItem } from '../api/client';
+import { api } from '../api/client';
 import { StatusBadge } from '../components/common/StatusBadge';
 
 export const IntakePage: React.FC = () => {
@@ -39,12 +39,12 @@ export const IntakePage: React.FC = () => {
     const ext = '.' + file.name.split('.').pop()?.toLowerCase();
 
     if (!validExtensions.includes(ext)) {
-      setErrorMsg(`Unsupported file type '${ext}'. Please upload a PDF, PNG, or JPEG.`);
+      setErrorMsg(`Unsupported file format '${ext}'. Please upload a standard PDF, PNG, or JPEG.`);
       return;
     }
 
     if (file.size > 15 * 1024 * 1024) {
-      setErrorMsg('File exceeds 15 MB limit.');
+      setErrorMsg('File exceeds maximum size limit of 15 MB.');
       return;
     }
 
@@ -80,10 +80,12 @@ export const IntakePage: React.FC = () => {
   });
 
   return (
-    <div className="space-y-8 pb-12 max-w-6xl mx-auto">
-      <div>
-        <h1 className="text-2xl md:text-3xl font-extrabold text-white">Document Intake</h1>
-        <p className="text-sm text-slate-400 mt-1">
+    <div className="space-y-6 pb-8 max-w-6xl mx-auto">
+      <div className="border-b border-[#374151] pb-4">
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#F9FAFB]">
+          Document Intake & Verification Ledger
+        </h1>
+        <p className="text-xs text-[#9CA3AF] mt-0.5">
           Import invoices and receipts. Cryptographic hashing guarantees deduplication before processing.
         </p>
       </div>
@@ -102,10 +104,10 @@ export const IntakePage: React.FC = () => {
             handleFileSelection(e.dataTransfer.files[0]);
           }
         }}
-        className={`relative border-2 border-dashed rounded-2xl p-8 md:p-12 text-center transition-all bg-slate-900/40 backdrop-blur-sm ${
+        className={`border-2 border-dashed rounded-xl p-8 text-center transition-all bg-[#1F2937] ${
           dragActive
-            ? 'border-indigo-500 bg-indigo-500/10 scale-[1.01]'
-            : 'border-slate-800 hover:border-slate-700'
+            ? 'border-[#10B981] bg-[#10B981]/5'
+            : 'border-[#374151] hover:border-[#4B5563]'
         }`}
       >
         <input
@@ -120,38 +122,38 @@ export const IntakePage: React.FC = () => {
           }}
         />
 
-        <div className="flex flex-col items-center justify-center space-y-4">
-          <div className="w-16 h-16 rounded-2xl bg-indigo-600/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-inner">
-            <UploadCloud className="w-8 h-8" />
+        <div className="flex flex-col items-center justify-center space-y-3">
+          <div className="w-12 h-12 rounded-xl bg-[#111827] border border-[#374151] flex items-center justify-center text-[#10B981]">
+            <UploadCloud className="w-6 h-6" />
           </div>
 
           <div>
-            <h3 className="text-base font-bold text-white">
-              Drop invoices or receipts here, or{' '}
+            <h3 className="text-sm font-semibold text-[#F9FAFB]">
+              Drag and drop invoices here, or{' '}
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="text-indigo-400 hover:text-indigo-300 underline font-semibold"
+                className="text-[#10B981] hover:underline font-bold"
               >
                 browse files
               </button>
             </h3>
-            <p className="text-xs text-slate-400 mt-1">
-              Supports vector & scanned PDF, PNG, JPEG (up to 15MB).
+            <p className="text-xs text-[#9CA3AF] mt-1">
+              Supports vector & scanned PDF, PNG, JPEG (up to 15 MB).
             </p>
           </div>
 
           {/* Selected File Card Preview */}
           {selectedFile && (
-            <div className="w-full max-w-lg p-4 rounded-xl bg-slate-950 border border-indigo-500/40 text-left space-y-3">
+            <div className="w-full max-w-md p-3.5 rounded-lg bg-[#111827] border border-[#374151] text-left space-y-3 mt-2">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 min-w-0">
-                  <FileText className="w-5 h-5 text-indigo-400 flex-shrink-0" />
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <FileText className="w-4 h-4 text-[#10B981] flex-shrink-0" />
                   <div className="truncate">
-                    <p className="text-xs font-bold text-slate-200 truncate">
+                    <p className="text-xs font-bold text-[#F9FAFB] truncate">
                       {selectedFile.name}
                     </p>
-                    <p className="text-[11px] text-slate-400 font-mono">
+                    <p className="text-[11px] text-[#9CA3AF] font-mono tabular-nums">
                       {(selectedFile.size / 1024).toFixed(1)} KB
                     </p>
                   </div>
@@ -163,15 +165,15 @@ export const IntakePage: React.FC = () => {
                     setSelectedFile(null);
                     setFileHashPreview(null);
                   }}
-                  className="text-xs text-slate-500 hover:text-slate-300"
+                  className="text-xs text-[#9CA3AF] hover:text-[#F9FAFB]"
                 >
                   Clear
                 </button>
               </div>
 
               {fileHashPreview && (
-                <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-[10px] font-mono text-slate-400 break-all flex items-center gap-2">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                <div className="p-2 rounded bg-[#1F2937] border border-[#374151] text-[10px] font-mono text-[#9CA3AF] break-all flex items-center gap-2">
+                  <ShieldCheck className="w-3 h-3 text-[#10B981] flex-shrink-0" />
                   <span>SHA-256: {fileHashPreview}</span>
                 </div>
               )}
@@ -180,16 +182,16 @@ export const IntakePage: React.FC = () => {
                 type="button"
                 disabled={uploadMutation.isPending}
                 onClick={() => uploadMutation.mutate(selectedFile)}
-                className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                className="w-full py-2 rounded-lg bg-[#10B981] hover:bg-[#059669] text-black text-xs font-bold flex items-center justify-center gap-2 btn-transition disabled:opacity-50"
               >
                 {uploadMutation.isPending ? (
                   <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                    Processing with Open-Weight AI & Validation...
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    Extracting & Running Verification...
                   </>
                 ) : (
                   <>
-                    <FileCheck className="w-4 h-4" />
+                    <FileCheck className="w-3.5 h-3.5" />
                     Extract & Verify Document
                   </>
                 )}
@@ -198,8 +200,8 @@ export const IntakePage: React.FC = () => {
           )}
 
           {errorMsg && (
-            <div className="flex items-center gap-2 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-medium">
-              <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-[#F87171]/15 border border-[#F87171]/30 text-[#F87171] text-xs font-medium">
+              <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
               <span>{errorMsg}</span>
             </div>
           )}
@@ -207,41 +209,41 @@ export const IntakePage: React.FC = () => {
       </div>
 
       {/* Uploaded Documents History */}
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur-sm overflow-hidden">
-        <div className="p-4 sm:p-5 border-b border-slate-800/80 flex items-center justify-between">
+      <div className="rounded-xl border border-[#374151] bg-[#1F2937] overflow-hidden">
+        <div className="p-4 border-b border-[#374151] flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <HardDrive className="w-4 h-4 text-indigo-400" />
-            <h2 className="text-sm font-bold text-white uppercase tracking-wider">
+            <HardDrive className="w-4 h-4 text-[#10B981]" />
+            <h2 className="text-xs font-bold text-[#F9FAFB] uppercase tracking-wider">
               Document Intake Ledger
             </h2>
           </div>
-          <span className="text-xs font-mono text-slate-400">
+          <span className="text-xs font-mono text-[#9CA3AF] tabular-nums">
             {documents?.length ?? 0} files stored
           </span>
         </div>
 
         {isLoading ? (
-          <div className="p-8 text-center text-xs text-slate-500">Loading documents...</div>
+          <div className="p-8 text-center text-xs text-[#9CA3AF]">Loading documents...</div>
         ) : documents && documents.length > 0 ? (
-          <div className="divide-y divide-slate-800/60">
+          <div className="divide-y divide-[#374151]">
             {documents.map((doc) => (
               <div
                 key={doc.id}
-                className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-800/30 transition-colors"
+                className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-[#283548] btn-transition"
               >
                 <div className="flex items-start gap-3 min-w-0">
-                  <div className="p-2.5 rounded-xl bg-slate-800 border border-slate-700/60 text-slate-300 mt-0.5">
-                    <FileText className="w-5 h-5 text-indigo-400" />
+                  <div className="p-2 rounded-lg bg-[#111827] border border-[#374151] text-[#10B981] mt-0.5">
+                    <FileText className="w-4 h-4" />
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-bold text-slate-100 truncate">
+                      <span className="text-xs font-bold text-[#F9FAFB] truncate">
                         {doc.filename}
                       </span>
                       <StatusBadge status={doc.status} size="sm" />
                     </div>
-                    <div className="text-[11px] text-slate-400 font-mono mt-1 flex items-center gap-3">
-                      <span>Hash: {doc.file_hash.substring(0, 12)}...</span>
+                    <div className="text-[11px] text-[#9CA3AF] font-mono mt-1 flex items-center gap-3">
+                      <span>Hash: {doc.file_hash.substring(0, 14)}...</span>
                       <span>•</span>
                       <span>{(doc.file_size / 1024).toFixed(1)} KB</span>
                       <span>•</span>
@@ -253,7 +255,7 @@ export const IntakePage: React.FC = () => {
                 <div className="flex items-center gap-2 self-end sm:self-center">
                   <Link
                     to={`/workspace?docId=${doc.id}`}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 text-xs font-semibold transition-colors"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#10B981]/15 hover:bg-[#10B981]/25 text-[#10B981] border border-[#10B981]/30 text-xs font-semibold btn-transition"
                   >
                     <Eye className="w-3.5 h-3.5" />
                     Inspect Evidence
@@ -265,7 +267,7 @@ export const IntakePage: React.FC = () => {
                         deleteMutation.mutate(doc.id);
                       }
                     }}
-                    className="p-1.5 rounded-lg hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition-colors"
+                    className="p-1.5 rounded-lg text-[#9CA3AF] hover:text-[#F87171] hover:bg-[#F87171]/10 btn-transition"
                     title="Delete document"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -275,7 +277,7 @@ export const IntakePage: React.FC = () => {
             ))}
           </div>
         ) : (
-          <div className="p-12 text-center text-slate-500 text-xs">
+          <div className="p-12 text-center text-[#6B7280] text-xs">
             No documents uploaded yet. Drop a PDF or use the demo seeder on the Dashboard.
           </div>
         )}

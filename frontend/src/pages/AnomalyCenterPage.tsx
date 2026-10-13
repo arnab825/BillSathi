@@ -4,14 +4,11 @@ import { Link } from 'react-router-dom';
 import {
   AlertTriangle,
   AlertCircle,
-  Info,
   CheckCircle2,
   Check,
   X,
   ExternalLink,
   ShieldAlert,
-  Search,
-  Filter,
 } from 'lucide-react';
 import { api, AnomalyItem } from '../api/client';
 import { StatusBadge } from '../components/common/StatusBadge';
@@ -40,25 +37,25 @@ export const AnomalyCenterPage: React.FC = () => {
   });
 
   return (
-    <div className="space-y-6 pb-12 max-w-6xl mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-6 pb-8 max-w-6xl mx-auto">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#374151] pb-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-white flex items-center gap-2">
-            <ShieldAlert className="w-6 h-6 text-rose-500" />
-            Anomaly Center
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#F9FAFB] flex items-center gap-2">
+            <ShieldAlert className="w-5 h-5 text-[#F87171]" />
+            Anomaly & Exception Center
           </h1>
-          <p className="text-sm text-slate-400 mt-1">
-            Explainable financial discrepancies, duplicate checks, and vendor price drift.
+          <p className="text-xs text-[#9CA3AF] mt-0.5">
+            Deterministic arithmetic discrepancies, duplicate detections, and vendor price drift alerts.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          <label className="flex items-center gap-2 text-xs text-slate-300 font-semibold cursor-pointer">
+          <label className="flex items-center gap-2 text-xs text-[#F9FAFB] font-semibold cursor-pointer">
             <input
               type="checkbox"
               checked={unresolvedOnly}
               onChange={(e) => setUnresolvedOnly(e.target.checked)}
-              className="rounded bg-slate-900 border-slate-700 text-indigo-600 focus:ring-0"
+              className="rounded bg-[#111827] border-[#374151] text-[#10B981] focus:ring-0"
             />
             Show Unresolved Only
           </label>
@@ -66,9 +63,9 @@ export const AnomalyCenterPage: React.FC = () => {
       </div>
 
       {/* Anomalies List */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         {isLoading ? (
-          <div className="p-12 text-center text-xs text-slate-500">Loading anomalies...</div>
+          <div className="p-12 text-center text-xs text-[#9CA3AF]">Loading anomaly records...</div>
         ) : anomalies && anomalies.length > 0 ? (
           anomalies.map((anom) => {
             let affectedFieldsArray: string[] = [];
@@ -78,45 +75,45 @@ export const AnomalyCenterPage: React.FC = () => {
               affectedFieldsArray = [];
             }
 
+            const isCritical = anom.severity === 'critical';
+
             return (
               <div
                 key={anom.id}
-                className={`p-5 rounded-2xl border transition-all ${
+                className={`p-4 rounded-xl border transition-all ${
                   anom.is_resolved
-                    ? 'bg-slate-900/40 border-slate-800/80 opacity-70'
-                    : anom.severity === 'critical'
-                    ? 'bg-rose-950/20 border-rose-500/30'
-                    : anom.severity === 'warning'
-                    ? 'bg-amber-950/20 border-amber-500/30'
-                    : 'bg-cyan-950/20 border-cyan-500/30'
+                    ? 'bg-[#1F2937]/50 border-[#374151] opacity-75'
+                    : isCritical
+                    ? 'bg-[#1F2937] border-[#F87171]/40'
+                    : 'bg-[#1F2937] border-[#F59E0B]/40'
                 }`}
               >
-                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                  <div className="space-y-2 min-w-0 max-w-3xl">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                  <div className="space-y-1.5 min-w-0 max-w-3xl">
                     <div className="flex items-center gap-2 flex-wrap">
                       <StatusBadge status={anom.severity} size="sm" />
-                      <span className="font-mono text-xs font-bold text-slate-400">
+                      <span className="font-mono text-xs font-bold text-[#9CA3AF]">
                         {anom.rule_code}
                       </span>
                       {anom.is_resolved && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30">
                           Resolved ({anom.resolution_action})
                         </span>
                       )}
                     </div>
 
-                    <h3 className="text-base font-bold text-white">{anom.title}</h3>
-                    <p className="text-xs text-slate-300 leading-relaxed">{anom.message}</p>
+                    <h3 className="text-sm font-bold text-[#F9FAFB]">{anom.title}</h3>
+                    <p className="text-xs text-[#9CA3AF] leading-relaxed">{anom.message}</p>
 
                     {affectedFieldsArray.length > 0 && (
                       <div className="flex items-center gap-1.5 pt-1">
-                        <span className="text-[11px] text-slate-500 font-semibold">
+                        <span className="text-[11px] text-[#6B7280] font-semibold">
                           Affected Fields:
                         </span>
                         {affectedFieldsArray.map((f, i) => (
                           <span
                             key={i}
-                            className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-[10px] border border-slate-700"
+                            className="px-2 py-0.5 rounded bg-[#111827] text-[#9CA3AF] font-mono text-[10px] border border-[#374151]"
                           >
                             {f}
                           </span>
@@ -125,8 +122,8 @@ export const AnomalyCenterPage: React.FC = () => {
                     )}
 
                     {anom.is_resolved && anom.resolution_note && (
-                      <p className="text-[11px] text-slate-400 italic">
-                        Resolution Note: "{anom.resolution_note}"
+                      <p className="text-[11px] text-[#9CA3AF] italic mt-1">
+                        Audit Note: "{anom.resolution_note}"
                       </p>
                     )}
                   </div>
@@ -135,16 +132,16 @@ export const AnomalyCenterPage: React.FC = () => {
                   <div className="flex items-center gap-2 flex-shrink-0 self-end sm:self-center">
                     <Link
                       to={`/workspace?docId=${anom.document_id}`}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-colors"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#111827] hover:bg-[#283548] text-[#F9FAFB] text-xs font-semibold border border-[#374151] btn-transition"
                     >
-                      <span>View Document</span>
-                      <ExternalLink className="w-3 h-3" />
+                      <span>Inspect Document</span>
+                      <ExternalLink className="w-3 h-3 text-[#9CA3AF]" />
                     </Link>
 
                     {!anom.is_resolved && (
                       <button
                         onClick={() => setSelectedAnomaly(anom)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow transition-all"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#10B981] hover:bg-[#059669] text-black text-xs font-bold btn-transition"
                       >
                         <Check className="w-3.5 h-3.5" />
                         Resolve Warning
@@ -156,9 +153,9 @@ export const AnomalyCenterPage: React.FC = () => {
             );
           })
         ) : (
-          <div className="p-16 text-center rounded-2xl border border-slate-800 bg-slate-900/40 text-slate-500 text-xs">
-            <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
-            <p className="font-bold text-slate-300">Zero Unresolved Anomalies</p>
+          <div className="p-16 text-center rounded-xl border border-[#374151] bg-[#1F2937] text-[#9CA3AF] text-xs">
+            <CheckCircle2 className="w-8 h-8 text-[#10B981] mx-auto mb-2" />
+            <p className="font-bold text-[#F9FAFB]">Zero Unresolved Anomalies</p>
             <p className="mt-1">
               All processed financial documents have verified arithmetic, unique hashes, and valid tax fields.
             </p>
@@ -168,55 +165,55 @@ export const AnomalyCenterPage: React.FC = () => {
 
       {/* Resolution Modal */}
       {selectedAnomaly && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl bg-slate-900 border border-slate-800 p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-base font-bold text-white">Resolve Anomaly</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75">
+          <div className="w-full max-w-md rounded-xl bg-[#1F2937] border border-[#374151] p-5 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-[#374151] pb-3">
+              <h3 className="text-sm font-bold text-[#F9FAFB]">Resolve Exception</h3>
               <button
                 onClick={() => setSelectedAnomaly(null)}
-                className="p-1 rounded text-slate-400 hover:text-white"
+                className="p-1 rounded text-[#9CA3AF] hover:text-[#F9FAFB]"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <div>
-              <p className="text-xs font-bold text-indigo-400">{selectedAnomaly.title}</p>
-              <p className="text-xs text-slate-300 mt-1">{selectedAnomaly.message}</p>
+              <p className="text-xs font-bold text-[#F9FAFB]">{selectedAnomaly.title}</p>
+              <p className="text-xs text-[#9CA3AF] mt-1">{selectedAnomaly.message}</p>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-[#9CA3AF] uppercase tracking-wider">
                 Resolution Action
               </label>
               <select
                 value={resolutionAction}
                 onChange={(e) => setResolutionAction(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white"
+                className="w-full px-3 py-2 rounded-lg bg-[#111827] border border-[#374151] text-xs text-[#F9FAFB] focus:outline-none focus:border-[#10B981]"
               >
-                <option value="ACCEPTED_OVERRIDE">Accept & Override (Valid Discrepancy/Fee)</option>
+                <option value="ACCEPTED_OVERRIDE">Accept & Override (Valid Discrepancy / Fee)</option>
                 <option value="CORRECTED_FIELD">Manual Field Correction Applied</option>
                 <option value="DISMISSED">Dismiss as Non-Actionable</option>
               </select>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-[#9CA3AF] uppercase tracking-wider">
                 Audit Rationale / Note
               </label>
               <textarea
                 value={resolutionNote}
                 onChange={(e) => setResolutionNote(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white h-20 resize-none focus:outline-none focus:border-indigo-500"
-                placeholder="Explain why this anomaly was cleared for tax auditing..."
+                className="w-full px-3 py-2 rounded-lg bg-[#111827] border border-[#374151] text-xs text-[#F9FAFB] h-20 resize-none focus:outline-none focus:border-[#10B981]"
+                placeholder="Explain why this exception is cleared for tax auditing..."
               />
             </div>
 
-            <div className="flex items-center gap-3 pt-2">
+            <div className="flex items-center gap-2.5 pt-1">
               <button
                 type="button"
                 onClick={() => setSelectedAnomaly(null)}
-                className="w-1/2 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold"
+                className="w-1/2 py-2 rounded-lg bg-[#111827] hover:bg-[#283548] text-[#F9FAFB] text-xs font-semibold border border-[#374151] btn-transition"
               >
                 Cancel
               </button>
@@ -230,7 +227,7 @@ export const AnomalyCenterPage: React.FC = () => {
                     note: resolutionNote,
                   })
                 }
-                className="w-1/2 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/30"
+                className="w-1/2 py-2 rounded-lg bg-[#10B981] hover:bg-[#059669] text-black text-xs font-bold btn-transition"
               >
                 Confirm Resolution
               </button>
