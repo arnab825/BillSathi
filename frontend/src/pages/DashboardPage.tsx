@@ -156,9 +156,9 @@ export const DashboardPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap flex-shrink-0">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full lg:w-auto">
           {/* Interactive Time Horizon Switcher */}
-          <div className="flex items-center p-1 rounded-xl bg-[#111827] border border-[#374151] text-xs flex-shrink-0">
+          <div className="flex items-center p-1 rounded-xl bg-[#111827] border border-[#374151] text-xs justify-between sm:justify-start">
             {(['all', 'quarter', 'month'] as const).map((period) => {
               const labels = { all: 'All Time', quarter: 'This Quarter', month: 'Last 30 Days' };
               const isActive = timeHorizon === period;
@@ -167,7 +167,7 @@ export const DashboardPage: React.FC = () => {
                   key={period}
                   type="button"
                   onClick={() => setTimeHorizon(period)}
-                  className={`px-2.5 py-1 rounded-lg font-medium btn-transition whitespace-nowrap ${
+                  className={`flex-1 sm:flex-initial text-center px-2.5 py-1 rounded-lg font-medium btn-transition whitespace-nowrap ${
                     isActive
                       ? 'bg-[#1F2937] text-[#10B981] font-bold shadow-sm border border-[#374151]'
                       : 'text-[#9CA3AF] hover:text-[#F9FAFB]'
@@ -179,56 +179,58 @@ export const DashboardPage: React.FC = () => {
             })}
           </div>
 
-          {/* Hidden File Input for Direct Dashboard Upload */}
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileUpload}
-            accept=".pdf,.png,.jpg,.jpeg"
-            className="hidden"
-          />
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            {/* Hidden File Input for Direct Dashboard Upload */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              accept=".pdf,.png,.jpg,.jpeg"
+              className="hidden"
+            />
 
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1F2937] hover:bg-[#283548] text-[#F9FAFB] text-xs font-semibold border border-[#374151] btn-transition shadow-sm whitespace-nowrap disabled:opacity-50 cursor-pointer"
-            title="Select and upload invoice directly from Dashboard"
-          >
-            {uploading ? (
-              <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#10B981]" />
-            ) : (
-              <Upload className="w-3.5 h-3.5 text-[#10B981]" />
-            )}
-            {uploading ? 'Processing Invoice...' : 'Upload Document'}
-          </button>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1F2937] hover:bg-[#283548] text-[#F9FAFB] text-xs font-semibold border border-[#374151] btn-transition shadow-sm whitespace-nowrap disabled:opacity-50 cursor-pointer"
+              title="Select and upload invoice directly from Dashboard"
+            >
+              {uploading ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#10B981]" />
+              ) : (
+                <Upload className="w-3.5 h-3.5 text-[#10B981]" />
+              )}
+              {uploading ? 'Processing...' : 'Upload Document'}
+            </button>
 
-          <button
-            onClick={() => seedMutation.mutate()}
-            disabled={seeding}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-black text-xs font-bold btn-transition disabled:opacity-50 shadow-sm whitespace-nowrap"
-          >
-            {seeding ? (
-              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Sparkles className="w-3.5 h-3.5" />
-            )}
-            Seed Demo
-          </button>
+            <button
+              onClick={() => seedMutation.mutate()}
+              disabled={seeding}
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-black text-xs font-bold btn-transition disabled:opacity-50 shadow-sm whitespace-nowrap"
+            >
+              {seeding ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Sparkles className="w-3.5 h-3.5" />
+              )}
+              Seed Demo
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Active Audit Anomaly Alert Banner (Appears dynamically) */}
       {hasAnomalies && (
         <div className="p-4 rounded-2xl bg-gradient-to-r from-[#F87171]/15 via-[#1F2937] to-[#1F2937] border border-[#F87171]/40 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in-0 duration-200">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <div className="w-9 h-9 rounded-xl bg-[#F87171]/20 border border-[#F87171]/40 flex items-center justify-center text-[#F87171] flex-shrink-0">
               <ShieldAlert className="w-5 h-5" />
             </div>
-            <div>
-              <div className="text-xs font-bold text-[#F9FAFB] flex items-center gap-2">
+            <div className="min-w-0 flex-1">
+              <div className="text-xs font-bold text-[#F9FAFB] flex items-center gap-2 flex-wrap">
                 <span>{stats?.unresolved_anomalies} Audit Anomalies Detected</span>
-                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-[#F87171]/20 text-[#F87171] border border-[#F87171]/30">
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#F87171]/20 text-[#F87171] border border-[#F87171]/30 whitespace-nowrap flex-shrink-0">
                   Critical Gate
                 </span>
               </div>
@@ -240,7 +242,7 @@ export const DashboardPage: React.FC = () => {
 
           <Link
             to="/anomalies"
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#F87171] hover:bg-[#ef4444] text-black text-xs font-bold btn-transition flex-shrink-0 shadow-sm"
+            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#F87171] hover:bg-[#ef4444] text-black text-xs font-bold btn-transition w-full sm:w-auto flex-shrink-0 shadow-sm"
           >
             <span>Resolve in Anomaly Center</span>
             <ArrowRight className="w-3.5 h-3.5" />
