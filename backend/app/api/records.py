@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.entities import FinancialRecord, Document, ExtractedField, AuditLog, Anomaly
 from app.schemas.financial import FinancialRecordResponse, FinancialRecordUpdate
+from app.validation.deterministic_rules import run_deterministic_checks, to_cents
 
 router = APIRouter(prefix="/api/records", tags=["financial_records"])
 
@@ -143,7 +144,8 @@ def update_extracted_field(
     db: Session = Depends(get_db),
 ):
     """
-    Updates an individual extracted field with human correction.
+    Updates an individual extracted field with human correction, synchronizes
+    with the underlying financial record, and re-evaluates deterministic checks.
     """
     field = db.query(ExtractedField).filter(ExtractedField.id == field_id).first()
     if not field:
@@ -154,6 +156,48 @@ def update_extracted_field(
     field.is_reviewed = True
     field.is_corrected = True
     field.validation_status = "valid"
+
+    # Synchronize with FinancialRecord
+    rec = db.query(FinancialRecord).filter(FinancialRecord.document_id == field.document_id).first()
+    doc = db.query(Document).filter(Document.id == field.document_id).first()
+
+    if rec:
+        fn = field.field_name.lower().strip()
+        if fn in ["total", "total_amount"]:
+            rec.total_cents = to_cents(req.user_corrected_value)
+        elif fn in ["subtotal", "sub_total"]:
+            rec.subtotal_cents = to_cents(req.user_corrected_value)
+        elif fn in ["tax", "tax_amount"]:
+            rec.tax_cents = to_cents(req.user_corrected_value)
+        elif fn == "vendor_name":
+            rec.vendor_name = req.user_corrected_value
+        elif fn == "invoice_number":
+            rec.invoice_number = req.user_corrected_value
+        elif fn == "invoice_date":
+            rec.invoice_date = req.user_corrected_value
+        elif fn == "due_date":
+            rec.due_date = req.user_corrected_value
+        elif fn == "currency":
+            rec.currency = req.user_corrected_value
+        elif fn == "category":
+            rec.category = req.user_corrected_value
+        elif fn == "payment_terms":
+            rec.payment_terms = req.user_corrected_value
+
+        # Re-evaluate deterministic integrity & math checks
+        db.query(Anomaly).filter(Anomaly.document_id == field.document_id).delete()
+        if doc:
+            new_anomalies = run_deterministic_checks(db, doc, rec, doc.file_hash)
+            for anom in new_anomalies:
+                db.add(anom)
+
+            critical_anoms = [a for a in new_anomalies if a.severity in ["critical", "warning"]]
+            if not critical_anoms:
+                doc.status = "Reviewed"
+                rec.status = "Reviewed"
+            else:
+                doc.status = "Needs review"
+                rec.status = "Needs review"
 
     db.add(
         AuditLog(
@@ -169,3 +213,4 @@ def update_extracted_field(
     db.commit()
     db.refresh(field)
     return field
+

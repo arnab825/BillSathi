@@ -30,12 +30,15 @@ Most AI invoice extractors act as **black-box transcription bots**: they blindly
 
 | Feature | Description |
 | :--- | :--- |
-| **Evidence Workspace** | Split-screen workbench rendering the original document alongside extracted fields. Clicking any field highlights the exact supporting bounding box on the document canvas. |
+| **Evidence Workspace** | Split-screen workbench rendering the original document with elevated paper framing alongside extracted fields. Clicking any field highlights the exact supporting bounding box on the document canvas. |
+| **Hybrid AI + Deterministic Fusion** | Merges high-level semantic AI intelligence (Gemma 2 via Ollama) with deterministic regex rules for zero-drop arithmetic reliability and instant fallback. |
+| **Scanned Document & Image OCR** | Built-in Tesseract OCR (`pytesseract`) extracting vector text, spatial coordinates, and bounding boxes from receipts and screenshots (PNG, JPG, WEBP). |
 | **Deterministic Financial Checks** | Integer cents arithmetic catches calculation inconsistencies (e.g. Subtotal $800 + Tax $100 != printed $950). |
 | **Deduplication Engine** | SHA-256 cryptographic file hashing detects identical duplicate uploads instantly; secondary checks flag duplicate invoice numbers from the same vendor. |
 | **Vendor Intelligence** | Tracks recurring expenses and alerts when an invoice deviates by >25% from a vendor's historical average (based on $\ge 2$ prior invoices). Shows exact math—never accuses of fraud. |
+| **Time Horizon Filtering** | Dynamic ledger filters on the Dashboard (`All Time`, `This Quarter`, `Last 30 Days`) with real-time KPI and anomaly recalculation. |
 | **Accountant-Ready CSV Export** | RFC 4180-compliant CSV export with normalized dates, categories, tax breakdowns, and human confirmation timestamps. |
-| **Zero-Drop Resilience** | Auto-detects local Ollama inference; seamlessly falls back to a deterministic regex extraction engine if Ollama is offline or uninstalled. |
+| **User Profile & Workspace Switching** | Custom persistent avatar upload, reviewer identity management, and instantaneous multi-client workspace switching. |
 
 ---
 
@@ -44,30 +47,31 @@ Most AI invoice extractors act as **black-box transcription bots**: they blindly
 Follow this exact workflow to evaluate BillSathi in 3 minutes:
 
 ### Step 1: Launch the Application
-Open your browser to `http://localhost:5173`. Notice the top navigation bar displaying the live AI runtime badge and the live database KPI dashboard.
+Open your browser to `http://localhost:5173`. Notice the top navigation bar displaying the live AI runtime badge (`Gemma 2 (Local AI)`) with real-time ping latency and database KPIs.
 
 ### Step 2: Seed the 3 Synthetic Demonstration Documents
-1. On the **Dashboard**, click the button: **`Load Hackathon Demo (3 Invoices)`**.
+1. On the **Dashboard**, click the button: **`Load Hackathon Demo (3 Invoices)`** (or **`Seed Demo`** in the header).
 2. BillSathi instantly generates and processes three synthetic PDF invoices through the pipeline:
    - **Invoice 1 (`invoice_normal_acme.pdf`):** A clean SaaS infrastructure invoice ($1,000 subtotal + $100 tax = $1,100 total).
    - **Invoice 2 (`invoice_duplicate_acme.pdf`):** An exact duplicate invoice matching hash and invoice number `INV-2026-001`.
    - **Invoice 3 (`invoice_arithmetic_error_apex.pdf`):** An office supplies invoice with a **deliberate arithmetic error** (Subtotal $800 + Tax $100, but printed Total is $950!).
 
 ### Step 3: Inspect the Flagship Evidence Workspace
-1. Navigate to **`Evidence Workspace`** from the navbar.
+1. Navigate to **`Review Queue`** or **`Documents`** and click `Inspect Evidence` (or open `/workspace`).
 2. Select `invoice_normal_acme.pdf`.
-3. Click on the field **`Total Due: $1,100.00`** in the right-hand panel.
-4. **Observe:** An animated, glowing bounding box appears on the PDF viewer on the left, highlighting the exact coordinates of `$1,100.00` on the invoice.
-5. In the **Human Review Gate**, enter your name and click **`Confirm Record`**. The status immediately transitions to `Confirmed`.
+3. Notice that `Vendor Name: Acme Cloud Infrastructure` is highlighted with an interactive green bounding box on the invoice.
+4. Click on the field **`Total: $1,100.00`** in the right-hand panel.
+5. **Observe:** An animated bounding box highlights `$1,100.00` on the invoice canvas with crisp paper elevation.
+6. In the **Human Verification Gate**, enter your reviewer name and click **`Confirm Record`**. The status transitions to `Confirmed`.
 
 ### Step 4: Resolve the Deliberate Arithmetic Anomaly
-1. Navigate to **`Anomaly Center`**.
-2. Notice the `CRITICAL` alert:
-   > *"Subtotal ($800.00) + Tax ($100.00) = $900.00, but printed Total is $950.00. Discrepancy: $50.00."*
+1. Navigate to **`Anomalies`**.
+2. Notice the alert:
+   > *"Calculated $900.00 vs printed $950.00 (Discrepancy: $50.00). Please inspect line items."*
 3. Click **`Resolve Warning`**, choose `Accepted & Override (Valid Discrepancy/Fee)`, enter an audit note, and confirm.
 
 ### Step 5: Export Accountant-Ready CSV
-1. Navigate to **`Financial Register`**.
+1. Navigate to **`Reports`** or **`Documents`**.
 2. Click **`Export Confirmed CSV (Audit-Ready)`**.
 3. Open the downloaded CSV in Excel or a text editor to verify RFC 4180 formatting, decimal amounts, and confirmation signatures.
 
@@ -78,17 +82,38 @@ Open your browser to `http://localhost:5173`. Notice the top navigation bar disp
 ```
 Frontend:   React 19 + TypeScript + Vite 8 + Tailwind CSS v4 + TanStack Query + Lucide Icons
 Backend:    Python 3.12 + FastAPI + Pydantic v2 + SQLAlchemy 2.0 + SQLite
-Document:   PyMuPDF (fitz) + ReportLab 4.x + Pillow
-AI Engine:  Ollama (Gemma 3 4B / Gemma 2 2B) with in-process deterministic fallback
+Document:   PyMuPDF (fitz) + Tesseract OCR (pytesseract) + ReportLab 4.x + Pillow
+AI Engine:  Ollama (Gemma 2 2B) with in-process deterministic fallback & hybrid fusion
 Testing:    Pytest (Backend) + Vitest & React Testing Library (Frontend)
 DevOps:     Podman Desktop / Docker Compose (compose.yaml)
 ```
 
 ---
 
-## 💻 Quickstart & Installation
+## 💻 Quickstart & Setup
 
-### Option A: Native Development (Recommended for Testing)
+> 📖 **Looking for comprehensive installation steps?** See our dedicated [Detailed Setup Guide](docs/SETUP.md).
+
+### Option A: Podman / Docker Compose (Recommended)
+
+BillSathi includes a full multi-container `compose.yaml` with pre-configured networking, Tesseract OCR, and an Ollama service:
+
+```bash
+# In the root repository directory:
+podman compose up --build -d
+# or
+docker compose up --build -d
+
+# Pull the lightweight Gemma 2 open-weight model into the Ollama container:
+podman exec -it billsathi-ollama ollama pull gemma2:2b
+# or
+docker exec -it billsathi-ollama ollama pull gemma2:2b
+```
+Access the application at **`http://localhost:5173`**.
+
+---
+
+### Option B: Native Development
 
 #### 1. Backend Setup
 ```bash
@@ -105,7 +130,7 @@ venv\Scripts\activate
 # Linux/macOS:
 source venv/bin/activate
 
-# Install dependencies
+# Install dependencies (including pytesseract)
 pip install -r requirements.txt
 
 # Start backend server (Port 8000)
@@ -114,10 +139,10 @@ uvicorn app.main:app --reload --port 8000
 
 #### 2. Frontend Setup
 ```bash
-# Open a new terminal in the repository root
+# In a new terminal in BillSathi/frontend
 cd BillSathi/frontend
 
-# Install packages
+# Install dependencies
 npm install
 
 # Start Vite dev server (Port 5173)
@@ -127,31 +152,18 @@ Open **`http://localhost:5173`** in your browser.
 
 ---
 
-### Option B: Podman / Docker Compose
-
-BillSathi includes a full `compose.yaml` configured with explicit Windows host-to-container networking:
-
-```bash
-# In the root repository directory:
-podman compose up --build
-# or
-docker compose up --build
-```
-Access the application at `http://localhost:5173`. The backend connects to the host machine's Ollama runtime via `host.containers.internal:11434`.
-
----
-
-## 🤖 Open-Weight AI Setup (Ollama + Gemma)
+## 🤖 Open-Weight AI Setup (Ollama + Gemma 2)
 
 BillSathi is designed to run completely offline using open-weight models:
 
 ```bash
-# Install Ollama from https://ollama.com
-# Pull and run Gemma 2 (or Gemma 3):
+# 1. Install Ollama from https://ollama.com
+# 2. Pull and run Gemma 2 2B:
 ollama run gemma2:2b
 ```
 
-Once Ollama is running on port 11434, BillSathi automatically detects it and marks the runtime as `Ollama: Gemma 3`. If Ollama is not installed or offline, BillSathi automatically switches to the built-in deterministic fallback engine so all demos, tests, and exports continue without interruption.
+Once Ollama is running on port 11434, BillSathi automatically detects it and displays `Gemma 2 (Local AI)` with live latency in the header. If Ollama is offline or uninstalled, BillSathi automatically falls back to its built-in deterministic rule engine so all demos, tests, and exports continue without interruption.
+
 
 ---
 
@@ -201,6 +213,7 @@ Independent consultants spend 4–8 hours every month manually renaming invoices
 
 ## 📜 Documentation Index
 
+- [Complete Setup & Deployment Guide](docs/SETUP.md)
 - [PRD (Product Requirements Document)](docs/PRD.md)
 - [TRD (Technical Requirements Document)](docs/TRD.md)
 - [Architecture & Pipeline Specification](docs/ARCHITECTURE.md)

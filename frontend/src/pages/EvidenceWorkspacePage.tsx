@@ -135,12 +135,76 @@ export const EvidenceWorkspacePage: React.FC = () => {
   const fin = doc.financial_record;
   const isConfirmed = fin?.status === 'Confirmed';
 
-  // Compute arithmetic discrepancy
-  const subtotalCents = fin?.subtotal_cents ?? 0;
-  const taxCents = fin?.tax_cents ?? 0;
-  const totalCents = fin?.total_cents ?? 0;
-  const mathExpected = subtotalCents + taxCents;
-  const hasMathMismatch = subtotalCents > 0 && totalCents > 0 && mathExpected !== totalCents;
+  const totalField = doc.extracted_fields?.find((f) => f.field_name.toLowerCase() === 'total');
+  const subtotalField = doc.extracted_fields?.find((f) => f.field_name.toLowerCase() === 'subtotal');
+  const taxField = doc.extracted_fields?.find((f) => f.field_name.toLowerCase() === 'tax');
+
+  const parseToCents = (valStr?: string | null, fallbackCents = 0): number => {
+    if (!valStr) return fallbackCents;
+    const clean = valStr.replace(/[^0-9.]/g, '');
+    const num = parseFloat(clean);
+    return isNaN(num) ? fallbackCents : Math.round(num * 100);
+  };
+
+  // Compute active/effective values prioritizing user corrections
+  const effectiveSubtotalCents = subtotalField?.user_corrected_value
+    ? parseToCents(subtotalField.user_corrected_value, fin?.subtotal_cents ?? 0)
+    : fin?.subtotal_cents ?? 0;
+
+  const effectiveTaxCents = taxField?.user_corrected_value
+    ? parseToCents(taxField.user_corrected_value, fin?.tax_cents ?? 0)
+    : fin?.tax_cents ?? 0;
+
+  const effectiveTotalCents = totalField?.user_corrected_value
+    ? parseToCents(totalField.user_corrected_value, fin?.total_cents ?? 0)
+    : fin?.total_cents ?? 0;
+
+  const mathExpected = effectiveSubtotalCents + effectiveTaxCents;
+  const hasMathMismatch = effectiveSubtotalCents > 0 && effectiveTotalCents > 0 && mathExpected !== effectiveTotalCents;
+
+  // Structured Line Items Parser (Segment 1)
+  const lineItems = React.useMemo(() => {
+    if (!doc.raw_text) return [];
+    const items: { description: string; qty: string; amount: string; amountCents: number }[] = [];
+    const match = doc.raw_text.match(/DESCRIPTION[\s\S]*?AMOUNT([\s\S]*?)(?:SUBTOTAL|TOTAL DUE|TAX)/i);
+    if (match && match[1]) {
+      const rawLines = match[1].split('\n').map((l) => l.trim()).filter(Boolean);
+      for (let i = 0; i < rawLines.length; i++) {
+        const line = rawLines[i];
+        const inlineMatch = line.match(/^(.+?)\s+(\d+)\s+\$?([0-9,]+\.[0-9]{2})$/);
+        if (inlineMatch) {
+          const amtClean = inlineMatch[3].replace(/,/g, '');
+          items.push({
+            description: inlineMatch[1].trim(),
+            qty: inlineMatch[2],
+            amount: `$${inlineMatch[3]}`,
+            amountCents: Math.round(parseFloat(amtClean) * 100),
+          });
+          continue;
+        }
+        if (i + 2 < rawLines.length) {
+          const nextLine = rawLines[i + 1];
+          const amountLine = rawLines[i + 2];
+          const isQty = /^\d+$/.test(nextLine);
+          const isAmt = /^\$?[0-9,]+\.[0-9]{2}$/.test(amountLine);
+          if (isQty && isAmt) {
+            const amtClean = amountLine.replace(/[\$,]/g, '');
+            items.push({
+              description: line,
+              qty: nextLine,
+              amount: amountLine.startsWith('$') ? amountLine : `$${amountLine}`,
+              amountCents: Math.round(parseFloat(amtClean) * 100),
+            });
+            i += 2;
+          }
+        }
+      }
+    }
+    return items;
+  }, [doc.raw_text]);
+
+  const lineItemsSumCents = lineItems.reduce((acc, it) => acc + it.amountCents, 0);
+  const itemsMatchSubtotal = lineItems.length > 0 && lineItemsSumCents === effectiveSubtotalCents;
 
   // Selected field bbox parsing
   let parsedBbox: number[] | null = null;
@@ -151,6 +215,7 @@ export const EvidenceWorkspacePage: React.FC = () => {
       parsedBbox = null;
     }
   }
+
 
   return (
     <div className="space-y-4 pb-8">
@@ -434,7 +499,7 @@ export const EvidenceWorkspacePage: React.FC = () => {
             )}
           </div>
 
-          {/* Arithmetic Verification Card */}
+          {/* Multi-Segment Deterministic Arithmetic Check */}
           <div
             className={`p-3.5 rounded-xl border transition-all ${
               hasMathMismatch
@@ -442,10 +507,10 @@ export const EvidenceWorkspacePage: React.FC = () => {
                 : 'bg-[#1F2937] border-[#374151]'
             }`}
           >
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-2.5">
               <div className="flex items-center gap-1.5 text-xs font-bold text-[#F9FAFB]">
                 <Calculator className="w-3.5 h-3.5 text-[#10B981]" />
-                <span>Deterministic Arithmetic Check</span>
+                <span>Deterministic Arithmetic Check (Multi-Segment)</span>
               </div>
               {hasMathMismatch ? (
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#F87171]/20 text-[#F87171] border border-[#F87171]/30">
@@ -458,14 +523,42 @@ export const EvidenceWorkspacePage: React.FC = () => {
               )}
             </div>
 
+            {/* Segment 1: Line Items Breakdown */}
+            {lineItems.length > 0 && (
+              <div className="mb-2.5 p-2 rounded-lg bg-[#111827] border border-[#374151] space-y-1.5">
+                <div className="flex items-center justify-between text-[10px] font-bold text-[#9CA3AF]">
+                  <span>Segment 1: Line Items ({lineItems.length})</span>
+                  <span className="font-mono text-[#F9FAFB]">Sum: {formatCents(lineItemsSumCents)}</span>
+                </div>
+                <div className="divide-y divide-[#374151]/50 text-[11px] font-mono">
+                  {lineItems.map((item, idx) => (
+                    <div key={idx} className="py-1 flex items-center justify-between text-[#E5E7EB]">
+                      <span className="truncate pr-2 font-sans text-xs">{item.description}</span>
+                      <span className="text-[#9CA3AF] text-[10px] pr-2">×{item.qty}</span>
+                      <span className="tabular-nums font-bold text-[#10B981]">{item.amount}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="pt-1 border-t border-[#374151]/60 flex items-center justify-between text-[10px]">
+                  <span className="text-[#9CA3AF]">Items Sum vs Subtotal:</span>
+                  {itemsMatchSubtotal ? (
+                    <span className="text-[#10B981] font-bold">✓ Matches Subtotal ({formatCents(effectiveSubtotalCents)})</span>
+                  ) : (
+                    <span className="text-[#F87171] font-bold">≠ Discrepancy ({formatCents(Math.abs(lineItemsSumCents - effectiveSubtotalCents))})</span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Segment 2 & 3: Totals & Tax Arithmetic Grid */}
             <div className="grid grid-cols-3 gap-2 text-center text-xs font-mono py-1.5 bg-[#111827] rounded-lg border border-[#374151]">
               <div className="p-1">
                 <div className="text-[10px] text-[#9CA3AF] font-sans">Subtotal</div>
-                <div className="font-bold text-[#F9FAFB] tabular-nums">{formatCents(subtotalCents)}</div>
+                <div className="font-bold text-[#F9FAFB] tabular-nums">{formatCents(effectiveSubtotalCents)}</div>
               </div>
               <div className="p-1 border-x border-[#374151]">
                 <div className="text-[10px] text-[#9CA3AF] font-sans">+ Tax</div>
-                <div className="font-bold text-[#F9FAFB] tabular-nums">{formatCents(taxCents)}</div>
+                <div className="font-bold text-[#F9FAFB] tabular-nums">{formatCents(effectiveTaxCents)}</div>
               </div>
               <div className="p-1">
                 <div className="text-[10px] text-[#9CA3AF] font-sans">= Total</div>
@@ -474,15 +567,34 @@ export const EvidenceWorkspacePage: React.FC = () => {
                     hasMathMismatch ? 'text-[#F87171]' : 'text-[#10B981]'
                   }`}
                 >
-                  {formatCents(totalCents)}
+                  {formatCents(effectiveTotalCents)}
                 </div>
               </div>
             </div>
 
             {hasMathMismatch && (
-              <p className="text-[11px] text-[#F87171] mt-2 leading-tight">
-                Calculated {formatCents(mathExpected)} vs printed {formatCents(totalCents)} (Discrepancy: {formatCents(Math.abs(totalCents - mathExpected))}). Please inspect line items.
-              </p>
+              <div className="mt-2 space-y-2">
+                <p className="text-[11px] text-[#F87171] leading-tight">
+                  Calculated {formatCents(mathExpected)} vs printed {formatCents(effectiveTotalCents)} (Discrepancy: {formatCents(Math.abs(effectiveTotalCents - mathExpected))}). Please inspect line items.
+                </p>
+
+                {totalField && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      updateFieldMutation.mutate({
+                        fieldId: totalField.id,
+                        value: (mathExpected / 100).toFixed(2),
+                        note: `Auto-balanced Total to match Subtotal (${formatCents(effectiveSubtotalCents)}) + Tax (${formatCents(effectiveTaxCents)})`,
+                      });
+                    }}
+                    className="w-full py-1.5 px-3 rounded-lg bg-[#10B981] hover:bg-[#059669] text-black text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Match Total to Math: {formatCents(mathExpected)}</span>
+                  </button>
+                )}
+              </div>
             )}
           </div>
 
