@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import {
@@ -25,14 +25,50 @@ import { useToast } from '../context/ToastContext';
 export const DashboardPage: React.FC = () => {
   const queryClient = useQueryClient();
   const toast = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [seeding, setSeeding] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [timeHorizon, setTimeHorizon] = useState<'all' | 'quarter' | 'month'>('all');
 
   const { data: stats, isLoading } = useQuery({
-    queryKey: ['dashboardStats'],
-    queryFn: api.getDashboard,
+    queryKey: ['dashboardStats', timeHorizon],
+    queryFn: () => api.getDashboard(timeHorizon),
     refetchInterval: 5000,
   });
+
+  const uploadMutation = useMutation({
+    mutationFn: (file: File) => api.uploadDocument(file),
+    onMutate: () => setUploading(true),
+    onSuccess: (newDoc) => {
+      toast.success('Document Ingested & Verified', `Processed ${newDoc.filename} directly into the financial ledger.`);
+      queryClient.invalidateQueries();
+    },
+    onError: (err: any) => {
+      toast.error('Upload Failed', err?.message || 'Failed to upload and process document.');
+    },
+    onSettled: () => setUploading(false),
+  });
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validExtensions = ['.pdf', '.png', '.jpg', '.jpeg'];
+    const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+
+    if (!validExtensions.includes(ext)) {
+      toast.error('Unsupported Format', 'Please upload a PDF, PNG, or JPEG file.');
+      return;
+    }
+
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error('File Exceeds Limit', 'Maximum file size is 15 MB.');
+      return;
+    }
+
+    uploadMutation.mutate(file);
+    e.target.value = '';
+  };
 
   const seedMutation = useMutation({
     mutationFn: api.seedDemo,
@@ -143,13 +179,29 @@ export const DashboardPage: React.FC = () => {
             })}
           </div>
 
-          <Link
-            to="/intake"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1F2937] hover:bg-[#283548] text-[#F9FAFB] text-xs font-semibold border border-[#374151] btn-transition shadow-sm whitespace-nowrap"
+          {/* Hidden File Input for Direct Dashboard Upload */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileUpload}
+            accept=".pdf,.png,.jpg,.jpeg"
+            className="hidden"
+          />
+
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1F2937] hover:bg-[#283548] text-[#F9FAFB] text-xs font-semibold border border-[#374151] btn-transition shadow-sm whitespace-nowrap disabled:opacity-50 cursor-pointer"
+            title="Select and upload invoice directly from Dashboard"
           >
-            <Upload className="w-3.5 h-3.5 text-[#9CA3AF]" />
-            Upload Document
-          </Link>
+            {uploading ? (
+              <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#10B981]" />
+            ) : (
+              <Upload className="w-3.5 h-3.5 text-[#10B981]" />
+            )}
+            {uploading ? 'Processing Invoice...' : 'Upload Document'}
+          </button>
 
           <button
             onClick={() => seedMutation.mutate()}

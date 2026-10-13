@@ -173,8 +173,9 @@ const API_BASE = '/api';
 
 export const api = {
   // System & Dashboard
-  getDashboard: async (): Promise<DashboardStats> => {
-    const res = await fetch(`${API_BASE}/system/dashboard`);
+  getDashboard: async (period?: any): Promise<DashboardStats> => {
+    const p = typeof period === 'string' ? period : 'all';
+    const res = await fetch(`${API_BASE}/system/dashboard?period=${encodeURIComponent(p)}`);
     if (!res.ok) throw new Error('Failed to fetch dashboard stats');
     return res.json();
   },

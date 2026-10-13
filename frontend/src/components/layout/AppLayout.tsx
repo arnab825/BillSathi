@@ -105,7 +105,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   // Fetch stats for live unread badge counts
   const { data: stats } = useQuery({
     queryKey: ['dashboardStats'],
-    queryFn: api.getDashboard,
+    queryFn: () => api.getDashboard(),
     refetchInterval: 5000,
   });
 

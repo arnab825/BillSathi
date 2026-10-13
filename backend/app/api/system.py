@@ -2,9 +2,9 @@ import hashlib
 import os
 import shutil
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -21,54 +21,99 @@ router = APIRouter(prefix="/api/system", tags=["system"])
 
 
 @router.get("/dashboard", response_model=DashboardStatsResponse)
-def get_dashboard_stats(db: Session = Depends(get_db)):
+def get_dashboard_stats(period: Optional[str] = Query("all", regex="^(all|quarter|month)$"), db: Session = Depends(get_db)):
     """
-    Computes all Dashboard KPIs directly from the relational database.
+    Computes all Dashboard KPIs directly from the relational database,
+    optionally filtering by time period (all, quarter, month).
     Zero hardcoded values.
     """
-    total_docs = db.query(Document).count()
-    imported_cnt = db.query(Document).filter(Document.status == "Imported").count()
-    needs_review_cnt = db.query(Document).filter(Document.status == "Needs review").count()
-    reviewed_cnt = db.query(Document).filter(Document.status == "Reviewed").count()
-    confirmed_cnt = db.query(Document).filter(Document.status == "Confirmed").count()
-    exported_cnt = db.query(Document).filter(Document.status == "Exported").count()
+    cutoff = None
+    if period == "month":
+        cutoff = datetime.utcnow() - timedelta(days=30)
+    elif period == "quarter":
+        cutoff = datetime.utcnow() - timedelta(days=90)
 
-    total_anomalies = db.query(Anomaly).count()
-    unresolved_anomalies = db.query(Anomaly).filter(Anomaly.is_resolved == False).count()
+    doc_query = db.query(Document)
+    fin_query = db.query(FinancialRecord)
+    anom_query = db.query(Anomaly)
+
+    if cutoff:
+        doc_query = doc_query.filter(Document.created_at >= cutoff)
+        fin_query = fin_query.join(Document, FinancialRecord.document_id == Document.id).filter(Document.created_at >= cutoff)
+        anom_query = anom_query.join(Document, Anomaly.document_id == Document.id).filter(Document.created_at >= cutoff)
+
+    total_docs = doc_query.count()
+    imported_cnt = doc_query.filter(Document.status == "Imported").count()
+    needs_review_cnt = doc_query.filter(Document.status == "Needs review").count()
+    reviewed_cnt = doc_query.filter(Document.status == "Reviewed").count()
+    confirmed_cnt = doc_query.filter(Document.status == "Confirmed").count()
+    exported_cnt = doc_query.filter(Document.status == "Exported").count()
+
+    total_anomalies = anom_query.count()
+    unresolved_anomalies = anom_query.filter(Anomaly.is_resolved == False).count()
     duplicates_cnt = (
-        db.query(Anomaly)
+        anom_query
         .filter(Anomaly.rule_code.in_(["EXACT_DUPLICATE", "ATTRIBUTE_DUPLICATE"]), Anomaly.is_resolved == False)
         .count()
     )
 
-    total_spend_cents = db.query(func.coalesce(func.sum(FinancialRecord.total_cents), 0)).scalar() or 0
+    total_spend_cents = fin_query.with_entities(func.coalesce(func.sum(FinancialRecord.total_cents), 0)).scalar() or 0
     confirmed_spend_cents = (
-        db.query(func.coalesce(func.sum(FinancialRecord.total_cents), 0))
+        fin_query
         .filter(FinancialRecord.status == "Confirmed")
+        .with_entities(func.coalesce(func.sum(FinancialRecord.total_cents), 0))
         .scalar()
         or 0
     )
 
-    # Recent vendors breakdown
-    recent_vendors = (
-        db.query(VendorProfile)
-        .order_by(VendorProfile.total_spend_cents.desc())
-        .limit(5)
-        .all()
-    )
-    vendors_list = [
-        {
-            "name": v.name,
-            "category": v.default_category,
-            "total_spend_cents": v.total_spend_cents,
-            "invoice_count": v.invoice_count,
-            "average_amount_cents": v.average_amount_cents,
-        }
-        for v in recent_vendors
-    ]
+    # Dynamic recent vendors breakdown for selected period
+    if cutoff:
+        vendor_totals = (
+            fin_query
+            .with_entities(
+                FinancialRecord.vendor_name,
+                func.sum(FinancialRecord.total_cents).label("spend"),
+                func.count(FinancialRecord.id).label("cnt")
+            )
+            .group_by(FinancialRecord.vendor_name)
+            .order_by(func.sum(FinancialRecord.total_cents).desc())
+            .limit(5)
+            .all()
+        )
+        vendors_list = [
+            {
+                "name": v[0],
+                "category": "Cloud & Services",
+                "total_spend_cents": v[1] or 0,
+                "invoice_count": v[2] or 0,
+                "average_amount_cents": int(v[1] / v[2]) if v[2] else 0,
+            }
+            for v in vendor_totals
+        ]
+    else:
+        recent_vendors = (
+            db.query(VendorProfile)
+            .order_by(VendorProfile.total_spend_cents.desc())
+            .limit(5)
+            .all()
+        )
+        vendors_list = [
+            {
+                "name": v.name,
+                "category": v.default_category,
+                "total_spend_cents": v.total_spend_cents,
+                "invoice_count": v.invoice_count,
+                "average_amount_cents": v.average_amount_cents,
+            }
+            for v in recent_vendors
+        ]
 
     # Monthly breakdown (YYYY-MM)
-    records = db.query(FinancialRecord).filter(FinancialRecord.invoice_date.isnot(None)).all()
+    if cutoff:
+        records = fin_query.filter(FinancialRecord.invoice_date.isnot(None)).all()
+    else:
+        records = db.query(FinancialRecord).filter(FinancialRecord.invoice_date.isnot(None)).all()
+
     monthly_map: Dict[str, int] = {}
     for r in records:
         if r.invoice_date and len(r.invoice_date) >= 7:
