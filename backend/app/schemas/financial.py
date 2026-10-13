@@ -67,6 +67,16 @@ class ResolveAnomalyRequest(BaseModel):
     resolution_note: Optional[str] = None
 
 
+class AnomalyExplanationResponse(BaseModel):
+    anomaly_id: str
+    rule_code: str
+    explanation: str
+    suggested_action: str
+    suggested_note: str
+    risk_level: str
+    confidence: float
+
+
 class VendorProfileResponse(BaseModel):
     id: str
     name: str

@@ -21,7 +21,7 @@ router = APIRouter(prefix="/api/system", tags=["system"])
 
 
 @router.get("/dashboard", response_model=DashboardStatsResponse)
-def get_dashboard_stats(period: Optional[str] = Query("all", regex="^(all|quarter|month)$"), db: Session = Depends(get_db)):
+def get_dashboard_stats(period: Optional[str] = Query("all", pattern="^(all|quarter|month)$"), db: Session = Depends(get_db)):
     """
     Computes all Dashboard KPIs directly from the relational database,
     optionally filtering by time period (all, quarter, month).

@@ -50,6 +50,26 @@ export interface AnomalyItem {
   created_at: string;
 }
 
+export interface AnomalyExplanation {
+  anomaly_id: string;
+  rule_code: string;
+  explanation: string;
+  suggested_action: string;
+  suggested_note: string;
+  risk_level: string;
+  confidence: number;
+}
+
+export interface AiExecutiveBriefing {
+  title: string;
+  bullets: string[];
+  total_records: number;
+  confirmed_records: number;
+  total_spend_formatted: string;
+  home_currency: string;
+  generated_at: string;
+}
+
 export interface AuditLogItem {
   id: string;
   action_type: string;
@@ -308,6 +328,14 @@ export const api = {
     return res.json();
   },
 
+  explainAnomalyWithAi: async (id: string): Promise<AnomalyExplanation> => {
+    const res = await fetch(`${API_BASE}/anomalies/${id}/explain-ai`, {
+      method: 'POST',
+    });
+    if (!res.ok) throw new Error('Failed to generate AI anomaly explanation');
+    return res.json();
+  },
+
   // Vendors
   listVendors: async (): Promise<VendorProfile[]> => {
     const res = await fetch(`${API_BASE}/vendors`);
@@ -327,6 +355,12 @@ export const api = {
   // Export
   getExportCsvUrl: (status?: string) => {
     return `${API_BASE}/export/csv${status ? `?status=${status}` : ''}`;
+  },
+
+  getAiBriefing: async (status?: string): Promise<AiExecutiveBriefing> => {
+    const res = await fetch(`${API_BASE}/export/ai-briefing${status ? `?status=${status}` : ''}`);
+    if (!res.ok) throw new Error('Failed to generate AI executive briefing');
+    return res.json();
   },
 
   // User Account & Workspaces

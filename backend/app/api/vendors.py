@@ -48,13 +48,23 @@ def get_vendor_comparison(
             vendor_name=current_record.vendor_name,
             current_invoice_number=current_record.invoice_number,
             current_amount_cents=current_record.total_cents,
-            historical_count=0,
+            historical_count=1,
             historical_average_cents=current_record.total_cents,
             historical_min_cents=current_record.total_cents,
             historical_max_cents=current_record.total_cents,
             difference_pct=0.0,
             is_drift_detected=False,
-            historical_invoices=[],
+            historical_invoices=[
+                {
+                    "id": current_record.id,
+                    "document_id": current_record.document_id,
+                    "invoice_number": current_record.invoice_number,
+                    "invoice_date": current_record.invoice_date,
+                    "total_cents": current_record.total_cents,
+                    "category": current_record.category,
+                    "status": f"{current_record.status} (Baseline)",
+                }
+            ],
         )
 
     hist_sum = sum(h.total_cents for h in historical)

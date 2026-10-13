@@ -32,12 +32,16 @@ Most AI invoice extractors act as **black-box transcription bots**: they blindly
 | :--- | :--- |
 | **Evidence Workspace** | Split-screen workbench rendering the original document with elevated paper framing alongside extracted fields. Clicking any field highlights the exact supporting bounding box on the document canvas. |
 | **Hybrid AI + Deterministic Fusion** | Merges high-level semantic AI intelligence (Gemma 2 via Ollama) with deterministic regex rules for zero-drop arithmetic reliability and instant fallback. |
+| **Global Home Ledger Currency** | Dynamically converts all figures across Dashboard, Vendors, Reports, and Evidence Workspace to your chosen entity currency (USD, INR ₹, EUR €, GBP £, CAD, AUD, JPY). |
+| **Dual Currency Math Display** | Evidence Workspace presents original invoice amounts alongside real-time converted ledger equivalents for subtotal, tax, and total. |
+| **AI Root-Cause Explainer** | Local open-weight AI agent diagnoses why anomalies occurred (unitemized charges, rounding discrepancies, duplicate risks) and suggests signed audit resolutions. |
+| **AI Executive Briefing** | Generates instant accountant-ready executive financial briefings summarizing spend, categories, and audit-readiness in the active ledger currency. |
 | **Scanned Document & Image OCR** | Built-in Tesseract OCR (`pytesseract`) extracting vector text, spatial coordinates, and bounding boxes from receipts and screenshots (PNG, JPG, WEBP). |
 | **Deterministic Financial Checks** | Integer cents arithmetic catches calculation inconsistencies (e.g. Subtotal $800 + Tax $100 != printed $950). |
 | **Deduplication Engine** | SHA-256 cryptographic file hashing detects identical duplicate uploads instantly; secondary checks flag duplicate invoice numbers from the same vendor. |
-| **Vendor Intelligence** | Tracks recurring expenses and alerts when an invoice deviates by >25% from a vendor's historical average (based on $\ge 2$ prior invoices). Shows exact math—never accuses of fraud. |
+| **Vendor Intelligence & Baselines** | Tracks recurring expenses, maintains baseline records, and alerts when an invoice deviates by >25% from a vendor's historical average. |
 | **Time Horizon Filtering** | Dynamic ledger filters on the Dashboard (`All Time`, `This Quarter`, `Last 30 Days`) with real-time KPI and anomaly recalculation. |
-| **Accountant-Ready CSV Export** | RFC 4180-compliant CSV export with normalized dates, categories, tax breakdowns, and human confirmation timestamps. |
+| **Accountant-Ready CSV Export** | RFC 4180-compliant CSV export with normalized dates, categories, tax breakdowns, document currency, home ledger currency, and converted totals. |
 | **User Profile & Workspace Switching** | Custom persistent avatar upload, reviewer identity management, and instantaneous multi-client workspace switching. |
 
 ---
@@ -64,16 +68,25 @@ Open your browser to `http://localhost:5173`. Notice the top navigation bar disp
 5. **Observe:** An animated bounding box highlights `$1,100.00` on the invoice canvas with crisp paper elevation.
 6. In the **Human Verification Gate**, enter your reviewer name and click **`Confirm Record`**. The status transitions to `Confirmed`.
 
-### Step 4: Resolve the Deliberate Arithmetic Anomaly
+### Step 4: Resolve the Deliberate Arithmetic Anomaly with AI
 1. Navigate to **`Anomalies`**.
 2. Notice the alert:
    > *"Calculated $900.00 vs printed $950.00 (Discrepancy: $50.00). Please inspect line items."*
-3. Click **`Resolve Warning`**, choose `Accepted & Override (Valid Discrepancy/Fee)`, enter an audit note, and confirm.
+3. Click **`Explain with AI`** to engage the local open-weight auditor agent.
+4. **Observe:** The AI agent analyzes the OCR text and reveals that this $50 discrepancy stems from an unitemized surcharge or rounding fee, recommending an `ACCEPTED_OVERRIDE`.
+5. Click **`Use AI Suggestion in Resolution`** to pre-populate the audit justification note and resolve.
 
-### Step 5: Export Accountant-Ready CSV
-1. Navigate to **`Reports`** or **`Documents`**.
-2. Click **`Export Confirmed CSV (Audit-Ready)`**.
-3. Open the downloaded CSV in Excel or a text editor to verify RFC 4180 formatting, decimal amounts, and confirmation signatures.
+### Step 5: Switch Home Ledger Currency & Test Dual Math
+1. Navigate to **`Settings`**.
+2. Change **Home Ledger Currency** from `USD ($)` to `INR (₹)` (or `EUR (€)`), and save.
+3. Open **`Dashboard`** or **`Vendors`**: observe all totals instantly recalculated in `₹` with USD base references.
+4. Open **`Workspace`**: observe the **Dual Currency Display** showing printed document totals alongside converted home equivalents (`≈ ₹79,325.00`).
+
+### Step 6: Generate AI Executive Briefing & Export CSV
+1. Navigate to **`Reports`** (`/register`).
+2. Click **`AI Executive Briefing`**: view the synthesized quarterly executive overview.
+3. Click **`Export Confirmed CSV (Audit-Ready)`**.
+4. Open the downloaded CSV to inspect dual-currency columns (`Document_Currency`, `Home_Ledger_Currency`, and `Home_Converted_Total`).
 
 ---
 

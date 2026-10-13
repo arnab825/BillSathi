@@ -7,8 +7,10 @@ import {
 } from 'lucide-react';
 import { api } from '../api/client';
 import { formatCents } from '../components/common/StatusBadge';
+import { useCurrency, CURRENCY_SYMBOLS } from '../context/CurrencyContext';
 
 export const VendorIntelligencePage: React.FC = () => {
+  const { homeCurrency, formatHome } = useCurrency();
   const [selectedVendor, setSelectedVendor] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -34,10 +36,15 @@ export const VendorIntelligencePage: React.FC = () => {
   return (
     <div className="space-y-6 pb-8 max-w-7xl mx-auto">
       <div className="border-b border-[#374151] pb-4">
-        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#F9FAFB] flex items-center gap-2">
-          <Building2 className="w-5 h-5 text-[#10B981]" />
-          Vendor Spending Intelligence & Volatility Analysis
-        </h1>
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#F9FAFB] flex items-center gap-2">
+            <Building2 className="w-5 h-5 text-[#10B981]" />
+            Vendor Spending Intelligence & Volatility Analysis
+          </h1>
+          <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30">
+            Ledger: {homeCurrency} ({CURRENCY_SYMBOLS[homeCurrency] || homeCurrency})
+          </span>
+        </div>
         <p className="text-xs text-[#9CA3AF] mt-0.5">
           Historical invoice tracking, average cost calculations, and explainable expense drift detection.
         </p>
@@ -87,10 +94,10 @@ export const VendorIntelligencePage: React.FC = () => {
                       </div>
                       <div className="text-right flex-shrink-0">
                         <div className="text-xs font-mono font-bold text-[#F9FAFB] tabular-nums">
-                          {formatCents(v.total_spend_cents)}
+                          {formatHome(v.total_spend_cents)}
                         </div>
                         <div className="text-[10px] text-[#6B7280]">
-                          avg {formatCents(v.average_amount_cents)}
+                          avg {formatHome(v.average_amount_cents)}
                         </div>
                       </div>
                     </div>
@@ -148,12 +155,12 @@ export const VendorIntelligencePage: React.FC = () => {
 
                     <p className="text-xs text-[#9CA3AF] leading-relaxed">
                       {comparison.historical_count >= 2
-                        ? `Current invoice of ${formatCents(comparison.current_amount_cents)} differs by ${
+                        ? `Current invoice of ${formatHome(comparison.current_amount_cents)} differs by ${
                             comparison.difference_pct > 0 ? '+' : ''
-                          }${comparison.difference_pct}% from historical average (${formatCents(
+                          }${comparison.difference_pct}% from historical average (${formatHome(
                             comparison.historical_average_cents
                           )}) across ${comparison.historical_count} prior invoices.`
-                        : `Baseline document registered at ${formatCents(
+                        : `Baseline document registered at ${formatHome(
                             comparison.current_amount_cents
                           )}. Future invoices will be compared against this baseline.`}
                     </p>
@@ -167,8 +174,9 @@ export const VendorIntelligencePage: React.FC = () => {
 
               {/* Historical Invoices Ledger */}
               <div className="rounded-xl border border-[#374151] bg-[#1F2937] overflow-hidden">
-                <div className="p-3.5 border-b border-[#374151] text-xs font-bold text-[#F9FAFB] uppercase tracking-wider">
-                  Comparison Invoices Used in Calculation
+                <div className="p-3.5 border-b border-[#374151] text-xs font-bold text-[#F9FAFB] uppercase tracking-wider flex items-center justify-between">
+                  <span>Comparison & Baseline Invoices ({comparison.historical_invoices.length})</span>
+                  <span className="text-[10px] text-[#9CA3AF] font-normal">Audited Ledger Records</span>
                 </div>
 
                 {comparison.historical_invoices.length > 0 ? (
@@ -188,9 +196,13 @@ export const VendorIntelligencePage: React.FC = () => {
                         </div>
                         <div className="flex items-center gap-3">
                           <span className="font-mono font-bold text-[#F9FAFB] tabular-nums">
-                            {formatCents(inv.total_cents)}
+                            {formatHome(inv.total_cents)}
                           </span>
-                          <span className="text-[10px] px-2 py-0.5 rounded bg-[#111827] text-[#9CA3AF] border border-[#374151]">
+                          <span className={`text-[10px] px-2 py-0.5 rounded border ${
+                            inv.status.includes('Baseline')
+                              ? 'bg-[#10B981]/15 text-[#10B981] border-[#10B981]/30 font-medium'
+                              : 'bg-[#111827] text-[#9CA3AF] border-[#374151]'
+                          }`}>
                             {inv.status}
                           </span>
                         </div>
@@ -199,7 +211,7 @@ export const VendorIntelligencePage: React.FC = () => {
                   </div>
                 ) : (
                   <div className="p-8 text-center text-xs text-[#6B7280]">
-                    No prior historical records for this vendor.
+                    No historical records available for this vendor.
                   </div>
                 )}
               </div>

@@ -124,6 +124,18 @@ def confirm_financial_record(
     if doc:
         doc.status = "Confirmed"
 
+    # Automatically resolve remaining anomalies when human reviewer confirms financial fact
+    unresolved_anoms = (
+        db.query(Anomaly)
+        .filter(Anomaly.document_id == rec.document_id, Anomaly.is_resolved == False)
+        .all()
+    )
+    for anom in unresolved_anoms:
+        anom.is_resolved = True
+        anom.resolution_action = "ACCEPTED_OVERRIDE"
+        anom.resolution_note = f"Confirmed as valid financial fact by {reviewer_name}"
+        anom.resolved_at = datetime.utcnow()
+
     db.add(
         AuditLog(
             document_id=rec.document_id,
@@ -146,6 +158,7 @@ def update_extracted_field(
     """
     Updates an individual extracted field with human correction, synchronizes
     with the underlying financial record, and re-evaluates deterministic checks.
+    Preserves human anomaly resolutions.
     """
     field = db.query(ExtractedField).filter(ExtractedField.id == field_id).first()
     if not field:
@@ -185,14 +198,30 @@ def update_extracted_field(
             rec.payment_terms = req.user_corrected_value
 
         # Re-evaluate deterministic integrity & math checks
+        # Save any previously resolved anomalies so human resolution rationale is not lost!
+        resolved_anomalies_map = {
+            a.rule_code: (a.resolution_action, a.resolution_note, a.resolved_at)
+            for a in db.query(Anomaly)
+            .filter(Anomaly.document_id == field.document_id, Anomaly.is_resolved == True)
+            .all()
+        }
         db.query(Anomaly).filter(Anomaly.document_id == field.document_id).delete()
         if doc:
             new_anomalies = run_deterministic_checks(db, doc, rec, doc.file_hash)
             for anom in new_anomalies:
+                if anom.rule_code in resolved_anomalies_map:
+                    action, note, res_at = resolved_anomalies_map[anom.rule_code]
+                    anom.is_resolved = True
+                    anom.resolution_action = action
+                    anom.resolution_note = note
+                    anom.resolved_at = res_at
                 db.add(anom)
 
-            critical_anoms = [a for a in new_anomalies if a.severity in ["critical", "warning"]]
-            if not critical_anoms:
+            critical_unresolved = [
+                a for a in new_anomalies
+                if a.severity in ["critical", "warning"] and not a.is_resolved
+            ]
+            if not critical_unresolved:
                 doc.status = "Reviewed"
                 rec.status = "Reviewed"
             else:

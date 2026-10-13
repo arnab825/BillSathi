@@ -129,8 +129,18 @@ export const VerificationTierBadge: React.FC<VerificationTierBadgeProps> = ({
 };
 
 export const formatCents = (cents: number, currency = 'USD'): string => {
-  const amount = (cents / 100).toFixed(2);
-  const symbol =
-    currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : currency === 'INR' ? '₹' : '$';
-  return `${symbol}${Number(amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+  const curr = (currency || 'USD').toUpperCase();
+  const symbols: Record<string, string> = {
+    USD: '$',
+    EUR: '€',
+    GBP: '£',
+    INR: '₹',
+    CAD: 'CA$',
+    AUD: 'A$',
+    JPY: '¥',
+  };
+  const symbol = symbols[curr] || `${curr} `;
+  const amount = Math.abs(cents || 0) / 100;
+  const sign = cents < 0 ? '-' : '';
+  return `${sign}${symbol}${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };

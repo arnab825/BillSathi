@@ -2,17 +2,20 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import {
-  AlertTriangle,
-  AlertCircle,
   CheckCircle2,
   Check,
   X,
   ExternalLink,
   ShieldAlert,
+  Sparkles,
+  Brain,
+  RefreshCw,
+  Lightbulb,
 } from 'lucide-react';
-import { api, AnomalyItem } from '../api/client';
+import { api, AnomalyItem, AnomalyExplanation } from '../api/client';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { CustomDropdown } from '../components/common/CustomDropdown';
+import { AuditTextarea } from '../components/common/AuditTextarea';
 import { useToast } from '../context/ToastContext';
 
 export const AnomalyCenterPage: React.FC = () => {
@@ -22,6 +25,8 @@ export const AnomalyCenterPage: React.FC = () => {
   const [selectedAnomaly, setSelectedAnomaly] = useState<AnomalyItem | null>(null);
   const [resolutionAction, setResolutionAction] = useState('ACCEPTED_OVERRIDE');
   const [resolutionNote, setResolutionNote] = useState('');
+  const [aiExplanations, setAiExplanations] = useState<Record<string, AnomalyExplanation>>({});
+  const [loadingAiId, setLoadingAiId] = useState<string | null>(null);
 
   const { data: anomalies, isLoading } = useQuery({
     queryKey: ['anomaliesList', unresolvedOnly],
@@ -42,6 +47,19 @@ export const AnomalyCenterPage: React.FC = () => {
       toast.error('Resolution Failed', 'Could not save anomaly resolution');
     },
   });
+
+  const handleExplainWithAi = async (anomalyId: string) => {
+    try {
+      setLoadingAiId(anomalyId);
+      const res = await api.explainAnomalyWithAi(anomalyId);
+      setAiExplanations((prev) => ({ ...prev, [anomalyId]: res }));
+      toast.success('AI Root-Cause Analyzed', `Synthesized audit findings for rule ${res.rule_code}`);
+    } catch {
+      toast.error('AI Analysis Failed', 'Could not synthesize anomaly explanation');
+    } finally {
+      setLoadingAiId(null);
+    }
+  };
 
   // Handle ESC key to dismiss resolution modal
   React.useEffect(() => {
@@ -146,27 +164,94 @@ export const AnomalyCenterPage: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Actions */}
-                  <div className="flex items-center gap-2 flex-shrink-0 self-end sm:self-center">
-                    <Link
-                      to={`/workspace?docId=${anom.document_id}`}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#111827] hover:bg-[#283548] text-[#F9FAFB] text-xs font-semibold border border-[#374151] btn-transition"
-                    >
-                      <span>Inspect Document</span>
-                      <ExternalLink className="w-3 h-3 text-[#9CA3AF]" />
-                    </Link>
-
-                    {!anom.is_resolved && (
+                    {/* Actions */}
+                    <div className="flex items-center gap-2 flex-shrink-0 self-end sm:self-center flex-wrap">
                       <button
-                        onClick={() => setSelectedAnomaly(anom)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#10B981] hover:bg-[#059669] text-black text-xs font-bold btn-transition"
+                        type="button"
+                        onClick={() => handleExplainWithAi(anom.id)}
+                        disabled={loadingAiId === anom.id}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#374151] hover:bg-[#4B5563] text-[#F9FAFB] text-xs font-semibold border border-[#4B5563] btn-transition disabled:opacity-50 cursor-pointer shadow-sm"
+                        title="Run local open-weight AI root-cause analysis"
                       >
-                        <Check className="w-3.5 h-3.5" />
-                        Resolve Warning
+                        {loadingAiId === anom.id ? (
+                          <RefreshCw className="w-3.5 h-3.5 text-[#10B981] animate-spin" />
+                        ) : (
+                          <Sparkles className="w-3.5 h-3.5 text-[#10B981]" />
+                        )}
+                        <span>{loadingAiId === anom.id ? 'Analyzing...' : 'Explain with AI'}</span>
                       </button>
-                    )}
+
+                      <Link
+                        to={`/workspace?docId=${anom.document_id}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#111827] hover:bg-[#283548] text-[#F9FAFB] text-xs font-semibold border border-[#374151] btn-transition"
+                      >
+                        <span>Inspect Document</span>
+                        <ExternalLink className="w-3 h-3 text-[#9CA3AF]" />
+                      </Link>
+
+                      {!anom.is_resolved && (
+                        <button
+                          onClick={() => {
+                            setSelectedAnomaly(anom);
+                            const explanation = aiExplanations[anom.id];
+                            if (explanation) {
+                              setResolutionAction(explanation.suggested_action);
+                              setResolutionNote(explanation.suggested_note);
+                            }
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#10B981] hover:bg-[#059669] text-black text-xs font-bold btn-transition"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          Resolve Warning
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
+
+                  {/* AI Root-Cause Explanation Card */}
+                  {aiExplanations[anom.id] && (
+                    <div className="mt-3.5 p-3.5 rounded-xl bg-[#111827] border border-[#10B981]/30 space-y-2.5 animate-in fade-in duration-200">
+                      <div className="flex items-center justify-between border-b border-[#374151] pb-2">
+                        <div className="flex items-center gap-2">
+                          <Brain className="w-4 h-4 text-[#10B981]" />
+                          <span className="text-xs font-bold text-[#F9FAFB] uppercase tracking-wider">
+                            Local AI Root-Cause Analysis
+                          </span>
+                          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#10B981]/15 text-[#10B981]">
+                            Risk: {aiExplanations[anom.id].risk_level} ({(aiExplanations[anom.id].confidence * 100).toFixed(0)}% confidence)
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-[#9CA3AF]">Open-Weight Auditor Agent</span>
+                      </div>
+
+                      <p className="text-xs text-[#D1D5DB] leading-relaxed">
+                        {aiExplanations[anom.id].explanation}
+                      </p>
+
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-[#374151]/50 text-[11px]">
+                        <div className="text-[#9CA3AF]">
+                          <span className="font-semibold text-[#F9FAFB]">Suggested Action:</span>{' '}
+                          <span className="font-mono text-[#10B981]">{aiExplanations[anom.id].suggested_action}</span>
+                          <span className="mx-2">•</span>
+                          <span className="italic">"{aiExplanations[anom.id].suggested_note}"</span>
+                        </div>
+                        {!anom.is_resolved && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedAnomaly(anom);
+                              setResolutionAction(aiExplanations[anom.id].suggested_action);
+                              setResolutionNote(aiExplanations[anom.id].suggested_note);
+                            }}
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-[#10B981] hover:underline flex-shrink-0 cursor-pointer"
+                          >
+                            <Lightbulb className="w-3.5 h-3.5" />
+                            Use AI Suggestion in Resolution
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
               </div>
             );
           })
@@ -189,7 +274,7 @@ export const AnomalyCenterPage: React.FC = () => {
             if (e.target === e.currentTarget) setSelectedAnomaly(null);
           }}
         >
-          <div className="w-full max-w-md rounded-xl bg-[#1F2937] border border-[#374151] p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150">
+          <div className="w-full max-w-lg rounded-xl bg-[#1F2937] border border-[#374151] p-5 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between border-b border-[#374151] pb-3">
               <h3 className="text-sm font-bold text-[#F9FAFB]">Resolve Exception</h3>
               <button
@@ -234,17 +319,20 @@ export const AnomalyCenterPage: React.FC = () => {
               />
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-[#9CA3AF] uppercase tracking-wider">
-                Audit Rationale / Note
-              </label>
-              <textarea
-                value={resolutionNote}
-                onChange={(e) => setResolutionNote(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-[#111827] border border-[#374151] text-xs text-[#F9FAFB] h-20 resize-none focus:outline-none focus:border-[#10B981]"
-                placeholder="Explain why this exception is cleared for tax auditing..."
-              />
-            </div>
+            <AuditTextarea
+              value={resolutionNote}
+              onChange={setResolutionNote}
+              label="Audit Rationale / Justification Note"
+              placeholder="Explain why this exception is cleared for tax auditing (e.g. approved discount, verified against paper receipt)..."
+              minRows={3}
+              quickChips={[
+                'Verified against physical invoice',
+                'Approved contract discount',
+                'Standard roundoff variance',
+                'Pre-authorized shipping surcharge',
+                'Advisory cleared by reviewer',
+              ]}
+            />
 
             <div className="flex items-center gap-2.5 pt-1">
               <button

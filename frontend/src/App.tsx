@@ -11,6 +11,7 @@ import { VendorIntelligencePage } from './pages/VendorIntelligencePage';
 import { SettingsPage } from './pages/SettingsPage';
 
 import { ToastProvider } from './context/ToastContext';
+import { CurrencyProvider } from './context/CurrencyContext';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -25,22 +26,24 @@ const queryClient = new QueryClient({
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ToastProvider>
-        <BrowserRouter>
-          <AppLayout>
-            <Routes>
-              <Route path="/" element={<DashboardPage />} />
-              <Route path="/intake" element={<IntakePage />} />
-              <Route path="/workspace" element={<EvidenceWorkspacePage />} />
-              <Route path="/anomalies" element={<AnomalyCenterPage />} />
-              <Route path="/register" element={<RegisterPage />} />
-              <Route path="/vendors" element={<VendorIntelligencePage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </AppLayout>
-        </BrowserRouter>
-      </ToastProvider>
+      <CurrencyProvider>
+        <ToastProvider>
+          <BrowserRouter>
+            <AppLayout>
+              <Routes>
+                <Route path="/" element={<DashboardPage />} />
+                <Route path="/intake" element={<IntakePage />} />
+                <Route path="/workspace" element={<EvidenceWorkspacePage />} />
+                <Route path="/anomalies" element={<AnomalyCenterPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/vendors" element={<VendorIntelligencePage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </AppLayout>
+          </BrowserRouter>
+        </ToastProvider>
+      </CurrencyProvider>
     </QueryClientProvider>
   );
 }

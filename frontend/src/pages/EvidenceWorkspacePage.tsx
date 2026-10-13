@@ -1,11 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  Eye,
   CheckCircle2,
-  AlertTriangle,
-  AlertCircle,
   Edit2,
   Save,
   X,
@@ -17,21 +14,20 @@ import {
   ZoomIn,
   ZoomOut,
   Maximize2,
-  ShieldCheck,
-  CheckCheck,
-  UserCheck,
-  Sparkles,
   RefreshCw,
 } from 'lucide-react';
 import { api, ExtractedFieldItem } from '../api/client';
 import { StatusBadge, VerificationTierBadge, formatCents } from '../components/common/StatusBadge';
 import { CustomDropdown } from '../components/common/CustomDropdown';
+import { AuditTextarea } from '../components/common/AuditTextarea';
 import { useToast } from '../context/ToastContext';
+import { useCurrency } from '../context/CurrencyContext';
 
 export const EvidenceWorkspacePage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const toast = useToast();
+  const { formatHome, getConversion } = useCurrency();
 
   const docIdParam = searchParams.get('docId');
 
@@ -64,6 +60,7 @@ export const EvidenceWorkspacePage: React.FC = () => {
   const [editValue, setEditValue] = useState('');
   const [editNote, setEditNote] = useState('');
   const [reviewerName, setReviewerName] = useState('Alex Rivera');
+  const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
 
   // Sync reviewer name with account profile once loaded
   useEffect(() => {
@@ -80,6 +77,48 @@ export const EvidenceWorkspacePage: React.FC = () => {
       setSelectedField(vendorField || firstBboxField || doc.extracted_fields[0]);
     }
   }, [doc]);
+
+  // Structured Line Items Parser (Segment 1) - Declared unconditionally to obey Rules of Hooks
+  const lineItems = useMemo(() => {
+    const rawText = doc?.raw_text;
+    if (!rawText) return [];
+    const items: { description: string; qty: string; amount: string; amountCents: number }[] = [];
+    const match = rawText.match(/DESCRIPTION[\s\S]*?AMOUNT([\s\S]*?)(?:SUBTOTAL|TOTAL DUE|TAX)/i);
+    if (match && match[1]) {
+      const rawLines = match[1].split('\n').map((l) => l.trim()).filter(Boolean);
+      for (let i = 0; i < rawLines.length; i++) {
+        const line = rawLines[i];
+        const inlineMatch = line.match(/^(.+?)\s+(\d+)\s+\$?([0-9,]+\.[0-9]{2})$/);
+        if (inlineMatch) {
+          const amtClean = inlineMatch[3].replace(/,/g, '');
+          items.push({
+            description: inlineMatch[1].trim(),
+            qty: inlineMatch[2],
+            amount: `$${inlineMatch[3]}`,
+            amountCents: Math.round(parseFloat(amtClean) * 100),
+          });
+          continue;
+        }
+        if (i + 2 < rawLines.length) {
+          const nextLine = rawLines[i + 1];
+          const amountLine = rawLines[i + 2];
+          const isQty = /^\d+$/.test(nextLine);
+          const isAmt = /^\$?[0-9,]+\.[0-9]{2}$/.test(amountLine);
+          if (isQty && isAmt) {
+            const amtClean = amountLine.replace(/[$,]/g, '');
+            items.push({
+              description: line,
+              qty: nextLine,
+              amount: amountLine.startsWith('$') ? amountLine : `$${amountLine}`,
+              amountCents: Math.round(parseFloat(amtClean) * 100),
+            });
+            i += 2;
+          }
+        }
+      }
+    }
+    return items;
+  }, [doc?.raw_text]);
 
   // Update field mutation
   const updateFieldMutation = useMutation({
@@ -160,48 +199,10 @@ export const EvidenceWorkspacePage: React.FC = () => {
     : fin?.total_cents ?? 0;
 
   const mathExpected = effectiveSubtotalCents + effectiveTaxCents;
-  const hasMathMismatch = effectiveSubtotalCents > 0 && effectiveTotalCents > 0 && mathExpected !== effectiveTotalCents;
+  const hasMathMismatch = effectiveSubtotalCents > 0 && effectiveTotalCents > 0 && Math.abs(mathExpected - effectiveTotalCents) > 2;
 
-  // Structured Line Items Parser (Segment 1)
-  const lineItems = React.useMemo(() => {
-    if (!doc.raw_text) return [];
-    const items: { description: string; qty: string; amount: string; amountCents: number }[] = [];
-    const match = doc.raw_text.match(/DESCRIPTION[\s\S]*?AMOUNT([\s\S]*?)(?:SUBTOTAL|TOTAL DUE|TAX)/i);
-    if (match && match[1]) {
-      const rawLines = match[1].split('\n').map((l) => l.trim()).filter(Boolean);
-      for (let i = 0; i < rawLines.length; i++) {
-        const line = rawLines[i];
-        const inlineMatch = line.match(/^(.+?)\s+(\d+)\s+\$?([0-9,]+\.[0-9]{2})$/);
-        if (inlineMatch) {
-          const amtClean = inlineMatch[3].replace(/,/g, '');
-          items.push({
-            description: inlineMatch[1].trim(),
-            qty: inlineMatch[2],
-            amount: `$${inlineMatch[3]}`,
-            amountCents: Math.round(parseFloat(amtClean) * 100),
-          });
-          continue;
-        }
-        if (i + 2 < rawLines.length) {
-          const nextLine = rawLines[i + 1];
-          const amountLine = rawLines[i + 2];
-          const isQty = /^\d+$/.test(nextLine);
-          const isAmt = /^\$?[0-9,]+\.[0-9]{2}$/.test(amountLine);
-          if (isQty && isAmt) {
-            const amtClean = amountLine.replace(/[\$,]/g, '');
-            items.push({
-              description: line,
-              qty: nextLine,
-              amount: amountLine.startsWith('$') ? amountLine : `$${amountLine}`,
-              amountCents: Math.round(parseFloat(amtClean) * 100),
-            });
-            i += 2;
-          }
-        }
-      }
-    }
-    return items;
-  }, [doc.raw_text]);
+  const arithmeticAnomaly = doc.anomalies?.find((a) => a.rule_code === 'ARITHMETIC_MISMATCH');
+  const isArithmeticResolved = arithmeticAnomaly?.is_resolved === true;
 
   const lineItemsSumCents = lineItems.reduce((acc, it) => acc + it.amountCents, 0);
   const itemsMatchSubtotal = lineItems.length > 0 && lineItemsSumCents === effectiveSubtotalCents;
@@ -246,7 +247,7 @@ export const EvidenceWorkspacePage: React.FC = () => {
               documents?.map((d) => ({
                 value: d.id,
                 label: d.filename,
-                description: `${d.financial_record?.vendor_name || 'Processing'} • ${formatCents(d.financial_record?.total_cents || 0)}`,
+                description: `${d.financial_record?.vendor_name || 'Processing'} • ${formatHome(d.financial_record?.total_cents || 0, d.financial_record?.currency)}`,
                 badge: d.status,
               })) || []
             }
@@ -372,18 +373,32 @@ export const EvidenceWorkspacePage: React.FC = () => {
               <img
                 src={`/api/documents/${doc.id}/preview/${activePage}`}
                 alt="Document Page Preview"
+                onLoad={(e) => {
+                  setImageDimensions({
+                    width: e.currentTarget.naturalWidth,
+                    height: e.currentTarget.naturalHeight,
+                  });
+                }}
                 className="w-full max-w-[650px] lg:max-w-[720px] h-auto object-contain select-none block rounded-[2px]"
                 onError={(e) => {
                   (e.target as HTMLElement).style.display = 'none';
                 }}
               />
 
-              {/* Bounding Box Visual Overlay */}
+              {/* Bounding Box Visual Overlay with Dynamic Scaling */}
               {parsedBbox && selectedField?.page_number === activePage && (() => {
-                const leftPct = (parsedBbox[0] / 612) * 100;
-                const topPct = (parsedBbox[1] / 792) * 100;
-                const widthPct = ((parsedBbox[2] - parsedBbox[0]) / 612) * 100;
-                const heightPct = ((parsedBbox[3] - parsedBbox[1]) / 792) * 100;
+                const isPdf = doc.mime_type === 'application/pdf';
+                const pageWidth = isPdf
+                  ? (imageDimensions?.width ? (imageDimensions.width * 72) / 150 : 612)
+                  : (imageDimensions?.width || 612);
+                const pageHeight = isPdf
+                  ? (imageDimensions?.height ? (imageDimensions.height * 72) / 150 : 792)
+                  : (imageDimensions?.height || 792);
+
+                const leftPct = (parsedBbox[0] / pageWidth) * 100;
+                const topPct = (parsedBbox[1] / pageHeight) * 100;
+                const widthPct = ((parsedBbox[2] - parsedBbox[0]) / pageWidth) * 100;
+                const heightPct = ((parsedBbox[3] - parsedBbox[1]) / pageHeight) * 100;
                 const isNearTop = topPct < 8;
 
                 return (
@@ -502,8 +517,10 @@ export const EvidenceWorkspacePage: React.FC = () => {
           {/* Multi-Segment Deterministic Arithmetic Check */}
           <div
             className={`p-3.5 rounded-xl border transition-all ${
-              hasMathMismatch
+              hasMathMismatch && !isArithmeticResolved
                 ? 'bg-[#F87171]/10 border-[#F87171]/40'
+                : hasMathMismatch && isArithmeticResolved
+                ? 'bg-[#F59E0B]/10 border-[#F59E0B]/30'
                 : 'bg-[#1F2937] border-[#374151]'
             }`}
           >
@@ -512,9 +529,13 @@ export const EvidenceWorkspacePage: React.FC = () => {
                 <Calculator className="w-3.5 h-3.5 text-[#10B981]" />
                 <span>Deterministic Arithmetic Check (Multi-Segment)</span>
               </div>
-              {hasMathMismatch ? (
+              {hasMathMismatch && !isArithmeticResolved ? (
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#F87171]/20 text-[#F87171] border border-[#F87171]/30">
                   Mismatch Detected
+                </span>
+              ) : hasMathMismatch && isArithmeticResolved ? (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#F59E0B]/20 text-[#F59E0B] border border-[#F59E0B]/30">
+                  Override Accepted
                 </span>
               ) : (
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30">
@@ -528,7 +549,18 @@ export const EvidenceWorkspacePage: React.FC = () => {
               <div className="mb-2.5 p-2 rounded-lg bg-[#111827] border border-[#374151] space-y-1.5">
                 <div className="flex items-center justify-between text-[10px] font-bold text-[#9CA3AF]">
                   <span>Segment 1: Line Items ({lineItems.length})</span>
-                  <span className="font-mono text-[#F9FAFB]">Sum: {formatCents(lineItemsSumCents)}</span>
+                  <div className="text-right font-mono">
+                    <span className="text-[#F9FAFB]">Sum: {formatCents(lineItemsSumCents)}</span>
+                    {(() => {
+                      const docCurr = (fin?.currency || 'USD').toUpperCase();
+                      const sumConv = getConversion(lineItemsSumCents, docCurr);
+                      return sumConv.isDifferent ? (
+                        <span className="ml-1.5 text-[#10B981] font-normal text-[10px]">
+                          (≈ {sumConv.convertedFormatted})
+                        </span>
+                      ) : null;
+                    })()}
+                  </div>
                 </div>
                 <div className="divide-y divide-[#374151]/50 text-[11px] font-mono">
                   {lineItems.map((item, idx) => (
@@ -551,28 +583,67 @@ export const EvidenceWorkspacePage: React.FC = () => {
             )}
 
             {/* Segment 2 & 3: Totals & Tax Arithmetic Grid */}
-            <div className="grid grid-cols-3 gap-2 text-center text-xs font-mono py-1.5 bg-[#111827] rounded-lg border border-[#374151]">
-              <div className="p-1">
-                <div className="text-[10px] text-[#9CA3AF] font-sans">Subtotal</div>
-                <div className="font-bold text-[#F9FAFB] tabular-nums">{formatCents(effectiveSubtotalCents)}</div>
-              </div>
-              <div className="p-1 border-x border-[#374151]">
-                <div className="text-[10px] text-[#9CA3AF] font-sans">+ Tax</div>
-                <div className="font-bold text-[#F9FAFB] tabular-nums">{formatCents(effectiveTaxCents)}</div>
-              </div>
-              <div className="p-1">
-                <div className="text-[10px] text-[#9CA3AF] font-sans">= Total</div>
-                <div
-                  className={`font-bold tabular-nums ${
-                    hasMathMismatch ? 'text-[#F87171]' : 'text-[#10B981]'
-                  }`}
-                >
-                  {formatCents(effectiveTotalCents)}
-                </div>
-              </div>
-            </div>
+            {(() => {
+              const docCurrency = (fin?.currency || 'USD').toUpperCase();
+              const subConv = getConversion(effectiveSubtotalCents, docCurrency);
+              const taxConv = getConversion(effectiveTaxCents, docCurrency);
+              const totConv = getConversion(effectiveTotalCents, docCurrency);
 
-            {hasMathMismatch && (
+              return (
+                <div className="grid grid-cols-3 gap-2 text-center text-xs font-mono py-2 px-1 bg-[#111827] rounded-lg border border-[#374151]">
+                  <div className="p-1">
+                    <div className="text-[10px] text-[#9CA3AF] font-sans">Subtotal</div>
+                    <div className="font-bold text-[#F9FAFB] tabular-nums">{formatCents(effectiveSubtotalCents)}</div>
+                    {subConv.isDifferent && (
+                      <div className="text-[10px] text-[#10B981] font-mono mt-0.5 tabular-nums">
+                        ≈ {subConv.convertedFormatted}
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-1 border-x border-[#374151]">
+                    <div className="text-[10px] text-[#9CA3AF] font-sans">+ Tax</div>
+                    <div className="font-bold text-[#F9FAFB] tabular-nums">{formatCents(effectiveTaxCents)}</div>
+                    {taxConv.isDifferent && (
+                      <div className="text-[10px] text-[#10B981] font-mono mt-0.5 tabular-nums">
+                        ≈ {taxConv.convertedFormatted}
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-1">
+                    <div className="text-[10px] text-[#9CA3AF] font-sans">= Total</div>
+                    <div
+                      className={`font-bold tabular-nums ${
+                        hasMathMismatch && !isArithmeticResolved
+                          ? 'text-[#F87171]'
+                          : hasMathMismatch && isArithmeticResolved
+                          ? 'text-[#F59E0B]'
+                          : 'text-[#10B981]'
+                      }`}
+                    >
+                      {formatCents(effectiveTotalCents)}
+                    </div>
+                    {totConv.isDifferent && (
+                      <div className="text-[10px] text-[#10B981] font-mono mt-0.5 font-bold tabular-nums">
+                        ≈ {totConv.convertedFormatted}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {hasMathMismatch && isArithmeticResolved && (
+              <div className="mt-2.5 p-2.5 rounded-lg bg-[#111827] border border-[#F59E0B]/30 space-y-1">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-[#F59E0B]">
+                  <span>Auditor Override Applied ({arithmeticAnomaly?.resolution_action})</span>
+                </div>
+                <p className="text-[11px] text-[#9CA3AF] italic leading-relaxed">
+                  "{arithmeticAnomaly?.resolution_note || 'Approved variance'}"
+                </p>
+              </div>
+            )}
+
+            {hasMathMismatch && !isArithmeticResolved && (
               <div className="mt-2 space-y-2">
                 <p className="text-[11px] text-[#F87171] leading-tight">
                   Calculated {formatCents(mathExpected)} vs printed {formatCents(effectiveTotalCents)} (Discrepancy: {formatCents(Math.abs(effectiveTotalCents - mathExpected))}). Please inspect line items.
@@ -597,6 +668,32 @@ export const EvidenceWorkspacePage: React.FC = () => {
               </div>
             )}
           </div>
+
+          {/* Home Ledger Currency Conversion Badge */}
+          {(() => {
+            const docCurrency = (fin?.currency || 'USD').toUpperCase();
+            const conv = getConversion(effectiveTotalCents, docCurrency);
+            return conv.isDifferent ? (
+              <div className="p-3 rounded-xl bg-[#10B981]/8 border border-[#10B981]/25 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="space-y-0.5">
+                  <div className="text-[10px] uppercase font-bold tracking-wider text-[#10B981]">
+                    Home Ledger Equivalent
+                  </div>
+                  <div className="text-lg font-extrabold font-mono text-[#10B981] tabular-nums">
+                    {conv.convertedFormatted}
+                  </div>
+                </div>
+                <div className="text-right space-y-0.5">
+                  <div className="text-[10px] text-[#9CA3AF] font-mono">
+                    Document: {conv.originalFormatted} ({docCurrency})
+                  </div>
+                  <div className="text-[10px] text-[#6B7280] font-mono">
+                    Rate: {conv.rateText}
+                  </div>
+                </div>
+              </div>
+            ) : null;
+          })()}
 
           {/* Extracted Fields List with Tier Badges */}
           <div className="rounded-xl border border-[#374151] bg-[#1F2937] overflow-hidden">
@@ -672,20 +769,31 @@ export const EvidenceWorkspacePage: React.FC = () => {
                     </div>
 
                     {isEditing ? (
-                      <div className="mt-2 space-y-2" onClick={(e) => e.stopPropagation()}>
-                        <input
-                          type="text"
-                          value={editValue}
-                          onChange={(e) => setEditValue(e.target.value)}
-                          className="w-full px-2.5 py-1.5 rounded-lg bg-[#111827] border border-[#10B981] text-xs text-[#F9FAFB] font-mono focus:outline-none"
-                          placeholder="Corrected value"
-                        />
-                        <input
-                          type="text"
+                      <div className="mt-2.5 space-y-2.5" onClick={(e) => e.stopPropagation()}>
+                        <div>
+                          <label className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider mb-1 block">
+                            Corrected Field Value
+                          </label>
+                          <input
+                            type="text"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            className="w-full px-2.5 py-1.5 rounded-lg bg-[#111827] border border-[#10B981] text-xs text-[#F9FAFB] font-mono focus:outline-none"
+                            placeholder="Corrected value"
+                          />
+                        </div>
+                        <AuditTextarea
                           value={editNote}
-                          onChange={(e) => setEditNote(e.target.value)}
-                          className="w-full px-2.5 py-1 rounded-lg bg-[#111827] border border-[#374151] text-[11px] text-[#9CA3AF] focus:outline-none"
-                          placeholder="Audit note (e.g. verified on page 1)"
+                          onChange={setEditNote}
+                          label="Audit Justification Note"
+                          placeholder="State why this field is being updated (e.g. verified on page 1 canvas, OCR typo)..."
+                          minRows={2}
+                          quickChips={[
+                            'Verified on canvas preview',
+                            'OCR number typo corrected',
+                            'Subtotal / Tax matched',
+                            'Vendor verified',
+                          ]}
                         />
                         <button
                           type="button"

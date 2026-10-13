@@ -68,3 +68,30 @@ def test_demo_seed_and_verification_workflow():
         assert "text/csv" in csv_res.headers["content-type"]
         assert "Document_ID" in csv_res.text
         assert "Acme Cloud Infrastructure" in csv_res.text
+
+        # 7. Test resolving an anomaly and verifying document review synchronization
+        target_anom = arithmetic_anomalies[0]
+        resolve_res = client.post(
+            f"/api/anomalies/{target_anom['id']}/resolve",
+            json={
+                "resolution_action": "ACCEPTED_OVERRIDE",
+                "resolution_note": "Approved discount discrepancy verified against agreement",
+            },
+        )
+        assert resolve_res.status_code == 200
+        resolved_anom_data = resolve_res.json()
+        assert resolved_anom_data["is_resolved"] is True
+        assert resolved_anom_data["resolution_action"] == "ACCEPTED_OVERRIDE"
+
+        # 8. Test confirming financial record
+        records_res = client.get("/api/records")
+        assert records_res.status_code == 200
+        records = records_res.json()
+        target_rec = records[0]
+        confirm_res = client.post(
+            f"/api/records/{target_rec['id']}/confirm?reviewer_name=Audit%20Test%20User"
+        )
+        assert confirm_res.status_code == 200
+        confirmed_data = confirm_res.json()
+        assert confirmed_data["status"] == "Confirmed"
+        assert confirmed_data["confirmed_by"] == "Audit Test User"

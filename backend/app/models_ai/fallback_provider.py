@@ -37,8 +37,8 @@ class FallbackExtractionProvider(BaseExtractionModel):
         return None
 
     def _extract_amount(self, text: str, label_pattern: str) -> Optional[str]:
-        # Looks for lines like "Total: $1,250.00" or "Subtotal 1200.00"
-        pattern = rf"{label_pattern}\s*[:\-]?\s*[\$€£₹]?\s*([0-9,]+\.[0-9]{{2}}|[0-9,]+)"
+        # Looks for lines like "Total: $1,250.00", "Total USD 1,250.00", "Grand Total: 1250.00"
+        pattern = rf"{label_pattern}\s*[:\-]?\s*(?:[\$€£₹¥]|USD|EUR|GBP|INR)?\s*([0-9,]+\.[0-9]{{2}}|[0-9]+)"
         match = re.search(pattern, text, re.IGNORECASE)
         if match:
             raw_amt = match.group(1).replace(",", "")
@@ -83,9 +83,12 @@ class FallbackExtractionProvider(BaseExtractionModel):
             currency = "INR"
 
         # 5. Financial Amounts
-        subtotal = self._extract_amount(raw_text, r"\b(?:subtotal|sub-total|net\s*amount)\b")
-        tax = self._extract_amount(raw_text, r"\b(?:tax(?:\s*\([^)]*\))?|vat|gst|sales\s*tax)")
-        total = self._extract_amount(raw_text, r"\b(?:total\s*due|final\s*total|balance\s*due|total\s*amount|total)\b")
+        subtotal = self._extract_amount(raw_text, r"\b(?:subtotal|sub-total|sub\s*total|net\s*amount|items\s*total)\b")
+        tax = self._extract_amount(raw_text, r"\b(?:tax(?:\s*\([^)]*\))?|vat|gst|sales\s*tax|service\s*tax)\b")
+        total = self._extract_amount(
+            raw_text,
+            r"\b(?:grand\s*total|total\s*due|final\s*total|balance\s*due|total\s*amount|amount\s*due|amount\s*payable|invoice\s*total|net\s*total|total)\b",
+        )
 
         if subtotal:
             source_snippets["subtotal"] = subtotal
@@ -94,8 +97,8 @@ class FallbackExtractionProvider(BaseExtractionModel):
         if total:
             source_snippets["total_amount"] = total
         else:
-            # Fallback to any prominent currency figure
-            any_amt = re.findall(r"\$\s*([0-9,]+\.[0-9]{2})", raw_text)
+            # Fallback: search for any prominent currency figure or decimal number in text
+            any_amt = re.findall(r"(?:[\$€£₹¥]|USD|EUR|GBP|INR)?\s*([0-9]{1,3}(?:,[0-9]{3})*\.[0-9]{2})\b", raw_text)
             total = any_amt[-1].replace(",", "") if any_amt else "0.00"
 
         # 6. Category Suggestion

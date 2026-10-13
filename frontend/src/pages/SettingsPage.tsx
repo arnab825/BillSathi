@@ -21,13 +21,16 @@ import { api } from '../api/client';
 import { CustomDropdown } from '../components/common/CustomDropdown';
 import { UserAvatar } from '../components/common/UserAvatar';
 import { useToast } from '../context/ToastContext';
+import { useCurrency } from '../context/CurrencyContext';
 
 const currencyOptions = [
-  { value: 'USD', label: 'USD ($)', description: 'United States Dollar', badge: '$' },
-  { value: 'EUR', label: 'EUR (€)', description: 'European Euro', badge: '€' },
-  { value: 'GBP', label: 'GBP (£)', description: 'British Pound Sterling', badge: '£' },
-  { value: 'INR', label: 'INR (₹)', description: 'Indian Rupee', badge: '₹' },
-  { value: 'CAD', label: 'CAD ($)', description: 'Canadian Dollar', badge: '$' },
+  { value: 'USD', label: 'USD ($)', description: 'United States Dollar (Base)', badge: '$' },
+  { value: 'INR', label: 'INR (₹)', description: 'Indian Rupee (1 USD ≈ 83.5 ₹)', badge: '₹' },
+  { value: 'EUR', label: 'EUR (€)', description: 'European Euro (1 USD ≈ 0.92 €)', badge: '€' },
+  { value: 'GBP', label: 'GBP (£)', description: 'British Pound (1 USD ≈ 0.79 £)', badge: '£' },
+  { value: 'CAD', label: 'CAD (CA$)', description: 'Canadian Dollar (1 USD ≈ 1.36 $)', badge: 'CA$' },
+  { value: 'AUD', label: 'AUD (A$)', description: 'Australian Dollar (1 USD ≈ 1.52 $)', badge: 'A$' },
+  { value: 'JPY', label: 'JPY (¥)', description: 'Japanese Yen (1 USD ≈ 155 ¥)', badge: '¥' },
 ];
 
 const presetAvatars = [
@@ -44,6 +47,7 @@ export const SettingsPage: React.FC = () => {
   const toast = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const { setHomeCurrencyState } = useCurrency();
   const [resetting, setResetting] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState('');
@@ -82,8 +86,8 @@ export const SettingsPage: React.FC = () => {
     onSuccess: () => {
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2800);
-      toast.success('Entity Profile Saved', 'Updated business credentials and profile photo in Podman SQLite.');
-      queryClient.invalidateQueries({ queryKey: ['userAccount'] });
+      toast.success('Entity Profile Saved', 'Updated business credentials and home currency.');
+      queryClient.invalidateQueries();
     },
     onError: (err: any) => {
       toast.error('Save Failed', err?.message || 'Could not update entity settings');
@@ -452,7 +456,10 @@ export const SettingsPage: React.FC = () => {
                 </label>
                 <CustomDropdown
                   value={homeCurrency}
-                  onChange={setHomeCurrency}
+                  onChange={(val) => {
+                    setHomeCurrency(val);
+                    setHomeCurrencyState(val);
+                  }}
                   className="w-full"
                   size="sm"
                   options={currencyOptions}

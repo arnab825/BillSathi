@@ -19,8 +19,10 @@
     ├── 4. Evidence Linker: Spatial Bounding Box Coordinate Mapping (Zero Hallucination)
     ├── 5. Deterministic Rules: Integer Cents Arithmetic, Attribute Duplicates, & Vendor Drift
     ├── 6. User Account Subsystem: Profile avatars, reviewer identity, & multi-workspace switcher
-    ├── 7. Persistence: SQLite + SQLAlchemy 2.0 (Foreign Keys & Cascading Deletions)
-    └── 8. Export Engine: RFC 4180 Accountant-Ready CSV Generator
+    ├── 7. Global Currency Subsystem: Integer-cents conversion across USD, INR, EUR, GBP, CAD, AUD, JPY
+    ├── 8. AI Auditor & Briefing Engine: Root-cause anomaly explainers & executive CFO summaries
+    ├── 9. Persistence: SQLite + SQLAlchemy 2.0 (Foreign Keys & Cascading Deletions)
+    └── 10. Export Engine: RFC 4180 Accountant-Ready CSV Generator (Dual-Currency Columns)
 ```
 
 ---
@@ -81,4 +83,20 @@
 - **Evidence Association:** When the model extracts a field (e.g., `vendor_name: "Acme Cloud Infrastructure"` or `total_amount: "1,100.00"`), `evidence_linker.py` scans candidate spans on the page.
 - **Strict Verification Policy:** If no spatial coordinate match exists in the document, `bbox_json` is set to `null` and marked `unverified`. BillSathi strictly never hallucinates or invents coordinates.
 - **Canvas Presentation:** The interactive Document Canvas uses elevated paper framing (`bg-white` with contrast drop shadows) and dynamic tooltip positioning to prevent off-canvas clipping for top-margin invoice headers.
+
+---
+
+## 4. Multi-Currency Ledger & Integer-Cents Conversion
+
+- **Exchange Rates & Precision:** Real-time conversion between `USD`, `INR` (₹), `EUR` (€), `GBP` (£), `CAD` (CA$), `AUD` (A$), and `JPY` (¥). All arithmetic executes in integer cents using Python `Decimal` and TypeScript `Math.round(usdCents * toRate)` to eliminate floating-point drift.
+- **Dual Currency Math Display:** In the Evidence Workspace, printed documents preserve their native currency to enable 1:1 visual audit matching against the paper canvas. Alongside, the arithmetic card displays inline converted amounts (`≈ ₹79,325.00`) and a dedicated **Home Ledger Equivalent** card showing the exact conversion rate applied.
+- **Export Consistency:** The RFC 4180 CSV export includes `Document_Currency`, `Home_Ledger_Currency`, and `Home_Converted_Total` columns so CPAs can audit both local and foreign disbursements.
+
+---
+
+## 5. Hybrid AI Auditor & Executive Briefing Architecture
+
+- **Root-Cause Anomaly Explainer:** When deterministic rules detect an anomaly (e.g. arithmetic mismatch or duplicate submission), the `/api/anomalies/{id}/explain-ai` endpoint provides contextual root-cause analysis. It determines whether a variance is caused by unitemized shipping, sales tax rounding, or accidental double-billing, and provides a signed recommendation (`ACCEPTED_OVERRIDE`, `CORRECTED_FIELD`, or `DISMISSED`).
+- **Executive CFO & Accountant Briefings:** The `/api/export/ai-briefing` endpoint synthesizes high-level quarterly expenditure, tax readiness metrics, and vendor concentration risks into structured executive briefings.
+
 

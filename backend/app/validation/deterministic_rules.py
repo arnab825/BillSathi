@@ -1,4 +1,5 @@
 import json
+import re
 from decimal import Decimal, InvalidOperation
 from typing import List, Optional, Tuple
 from sqlalchemy.orm import Session
@@ -8,14 +9,47 @@ from app.models.entities import Document, FinancialRecord, Anomaly, VendorProfil
 
 
 def to_cents(val_str: Optional[str]) -> int:
-    """Converts a currency string to integer minor units (cents) safely using Decimal."""
+    """
+    Converts a currency string to integer minor units (cents) safely using Decimal.
+    Handles:
+    - Currency symbols: $, €, £, ₹, ¥
+    - Currency codes: USD, EUR, GBP, INR, CAD, etc.
+    - European formatting: 1.250,50 vs standard 1,250.50
+    - Text prefixes/suffixes: 'Total: $1,250.50 USD', '1100.00 (tax incl)'
+    """
     if not val_str:
         return 0
+    raw = str(val_str).strip()
+    if not raw or raw.lower() in ["null", "none", "n/a", "undefined"]:
+        return 0
+
+    # Remove non-numeric prefixes/suffixes except signs, digits, commas, dots
+    # Match patterns like: 1,234.56, 1.234,56, 1234.56, 1234,56, 1234
+    cleaned = re.sub(r"[A-Za-z$€£₹¥₽₩]+", " ", raw).strip()
+    match = re.search(
+        r"[-+]?\s*([0-9]{1,3}(?:[.,\s][0-9]{3})*(?:[.,][0-9]{1,4})?|[0-9]+(?:[.,][0-9]{1,4})?)",
+        cleaned,
+    )
+    if not match:
+        return 0
+
+    num_str = match.group(1).replace(" ", "").strip()
+    if "." in num_str and "," in num_str:
+        if num_str.rfind(",") > num_str.rfind("."):
+            # European format: 1.250,50 -> 1250.50
+            num_str = num_str.replace(".", "").replace(",", ".")
+        else:
+            # Standard format: 1,250.50 -> 1250.50
+            num_str = num_str.replace(",", "")
+    elif "," in num_str:
+        parts = num_str.split(",")
+        if len(parts) == 2 and len(parts[1]) in (1, 2):
+            num_str = f"{parts[0]}.{parts[1]}"
+        else:
+            num_str = num_str.replace(",", "")
+
     try:
-        clean = val_str.replace("$", "").replace("€", "").replace("£", "").replace("₹", "").replace(",", "").strip()
-        if not clean:
-            return 0
-        d = Decimal(clean)
+        d = Decimal(num_str)
         return int((d * Decimal(100)).quantize(Decimal("1")))
     except (InvalidOperation, ValueError):
         return 0
@@ -95,11 +129,11 @@ def run_deterministic_checks(
             )
 
     # 3. Arithmetic Consistency Check (Subtotal + Tax == Total)
-    # Using integer cents arithmetic: never floating-point
+    # Using integer cents arithmetic with a ±2 cent tolerance for rounding discrepancies
     if record.subtotal_cents > 0 and record.total_cents > 0:
         expected_total = record.subtotal_cents + record.tax_cents
-        if expected_total != record.total_cents:
-            diff_cents = abs(record.total_cents - expected_total)
+        diff_cents = abs(record.total_cents - expected_total)
+        if diff_cents > 2:
             anomalies.append(
                 Anomaly(
                     document_id=document.id,
@@ -143,8 +177,8 @@ def run_deterministic_checks(
             )
         )
 
-    # 6. Unitemized Tax / Difference Warning
-    if record.subtotal_cents > 0 and record.tax_cents == 0 and record.total_cents > record.subtotal_cents:
+    # 6. Unitemized Tax / Difference Warning (only if total exceeds subtotal by > 2 cents with 0 tax)
+    if record.subtotal_cents > 0 and record.tax_cents == 0 and (record.total_cents - record.subtotal_cents) > 2:
         diff_cents = record.total_cents - record.subtotal_cents
         anomalies.append(
             Anomaly(

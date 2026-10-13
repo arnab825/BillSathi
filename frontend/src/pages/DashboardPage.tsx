@@ -21,10 +21,12 @@ import {
 import { api } from '../api/client';
 import { formatCents } from '../components/common/StatusBadge';
 import { useToast } from '../context/ToastContext';
+import { useCurrency, CURRENCY_SYMBOLS } from '../context/CurrencyContext';
 
 export const DashboardPage: React.FC = () => {
   const queryClient = useQueryClient();
   const toast = useToast();
+  const { homeCurrency, formatHome, formatDoc } = useCurrency();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [seeding, setSeeding] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -74,7 +76,8 @@ export const DashboardPage: React.FC = () => {
     mutationFn: api.seedDemo,
     onMutate: () => setSeeding(true),
     onSuccess: (res) => {
-      toast.success('Synthetic Demo Invoices Seeded', `Created ${res.documents_created} documents with arithmetic checks and duplicate flags`);
+      const count = res.documents?.length || 3;
+      toast.success('Synthetic Demo Invoices Seeded', `Created ${count} documents with arithmetic checks and duplicate flags`);
       queryClient.invalidateQueries();
     },
     onError: () => {
@@ -149,6 +152,12 @@ export const DashboardPage: React.FC = () => {
             </h1>
             <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30 whitespace-nowrap flex-shrink-0">
               Live Ledger
+            </span>
+            <span
+              className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-[#374151] text-[#9CA3AF] border border-[#4B5563] whitespace-nowrap flex-shrink-0"
+              title="Home Ledger Currency"
+            >
+              Ledger: {homeCurrency} ({CURRENCY_SYMBOLS[homeCurrency] || homeCurrency})
             </span>
           </div>
           <p className="text-xs text-[#9CA3AF] mt-0.5">
@@ -301,22 +310,36 @@ export const DashboardPage: React.FC = () => {
 
             <div className="space-y-3">
               <div className="p-3.5 rounded-xl bg-[#111827] border border-[#374151] shadow-inner">
-                <div className="text-[11px] font-medium text-[#9CA3AF]">Total Processed Invoices</div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-medium text-[#9CA3AF]">Total Processed Invoices</span>
+                  {homeCurrency !== 'USD' && (
+                    <span className="text-[10px] font-mono text-[#9CA3AF] bg-[#1F2937] px-1.5 py-0.5 rounded border border-[#374151]">
+                      {formatDoc(stats?.total_spend_cents ?? 0, 'USD')} base
+                    </span>
+                  )}
+                </div>
                 <div className="text-2xl font-extrabold text-[#F9FAFB] font-mono tabular-nums mt-0.5">
-                  {formatCents(stats?.total_spend_cents ?? 0)}
+                  {formatHome(stats?.total_spend_cents ?? 0)}
                 </div>
                 <p className="text-[10px] text-[#6B7280] mt-1">
-                  Derived from {stats?.total_documents ?? 0} invoices ingested into SQLite ledger
+                  Derived from {stats?.total_documents ?? 0} invoices converted to {homeCurrency} ledger
                 </p>
               </div>
 
               <div className="p-3.5 rounded-xl bg-[#10B981]/10 border border-[#10B981]/30">
-                <div className="text-[11px] font-semibold text-[#10B981]">Human-Confirmed Total</div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-[#10B981]">Human-Confirmed Total</span>
+                  {homeCurrency !== 'USD' && (
+                    <span className="text-[10px] font-mono text-[#10B981]/80 bg-[#10B981]/10 px-1.5 py-0.5 rounded border border-[#10B981]/20">
+                      {formatDoc(stats?.confirmed_spend_cents ?? 0, 'USD')} base
+                    </span>
+                  )}
+                </div>
                 <div className="text-2xl font-extrabold text-[#10B981] font-mono tabular-nums mt-0.5">
-                  {formatCents(stats?.confirmed_spend_cents ?? 0)}
+                  {formatHome(stats?.confirmed_spend_cents ?? 0)}
                 </div>
                 <p className="text-[10px] text-[#10B981]/70 mt-1">
-                  Approved for accountant handoff and tax register export
+                  Approved for accountant handoff and tax register export ({homeCurrency})
                 </p>
               </div>
             </div>
@@ -362,10 +385,10 @@ export const DashboardPage: React.FC = () => {
                   </div>
                   <div className="text-right flex-shrink-0">
                     <div className="text-xs font-bold font-mono text-[#F9FAFB] tabular-nums">
-                      {formatCents(vendor.total_spend_cents)}
+                      {formatHome(vendor.total_spend_cents)}
                     </div>
                     <div className="text-[10px] text-[#6B7280]">
-                      avg {formatCents(vendor.average_amount_cents)}
+                      avg {formatHome(vendor.average_amount_cents)}
                     </div>
                   </div>
                 </div>
@@ -423,7 +446,7 @@ export const DashboardPage: React.FC = () => {
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0 font-mono">
                           <span className="text-[#9CA3AF] text-[11px]">{pct.toFixed(0)}%</span>
-                          <span className="text-[#F9FAFB] font-bold">{formatCents(vendor.total_spend_cents)}</span>
+                          <span className="text-[#F9FAFB] font-bold">{formatHome(vendor.total_spend_cents)}</span>
                         </div>
                       </div>
                     );
