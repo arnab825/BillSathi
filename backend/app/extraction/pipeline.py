@@ -8,6 +8,7 @@ from app.models.entities import Document, ExtractedField, FinancialRecord, Anoma
 from app.extraction.pdf_parser import parse_pdf_document, parse_image_document
 from app.extraction.evidence_linker import link_evidence_for_fields
 from app.models_ai.factory import get_active_model
+from app.models_ai.fallback_provider import FallbackExtractionProvider
 from app.validation.deterministic_rules import run_deterministic_checks, to_cents
 
 logger = logging.getLogger(__name__)
@@ -20,8 +21,8 @@ async def process_document_pipeline(
     """
     Executes the full BillSathi extraction and verification pipeline:
     1. Parse text & spatial coordinates
-    2. Model extraction (Ollama or Fallback Engine)
-    3. Strict Pydantic validation
+    2. Hybrid extraction (Open-Weight Ollama AI + Deterministic Fallback fusion)
+    3. Strict Pydantic validation & normalization
     4. Coordinate & text evidence linking
     5. Deterministic financial & duplicate checks
     6. Relational persistence
@@ -41,17 +42,75 @@ async def process_document_pipeline(
         document.page_count = parsed.page_count
         document.raw_text = parsed.raw_text
 
-        # 2. Open-Weight AI Extraction
+        # 2. Hybrid AI + Rule Extraction
         active_model = await get_active_model()
         model_info = active_model.get_provider_info()
-        extraction_method = "ai_model" if "Ollama" in model_info["provider"] else "regex_rule"
+        extraction_method = "ai_model" if "Ollama" in model_info.get("provider", "") else "regex_rule"
 
-        extracted_data = await active_model.extract(parsed.raw_text)
+        extracted_data = None
+        try:
+            extracted_data = await active_model.extract(parsed.raw_text)
+        except Exception as ai_err:
+            logger.warning(
+                f"Active AI model extraction error for doc {document.id}: {ai_err}. "
+                "Seamlessly engaging deterministic rule engine."
+            )
+            fallback_engine = FallbackExtractionProvider()
+            extracted_data = await fallback_engine.extract(parsed.raw_text)
+            extraction_method = "regex_rule"
+
+        # Deterministic Field Fusion:
+        # Augment any empty critical values with deterministic regex heuristics
+        try:
+            fallback_engine = FallbackExtractionProvider()
+            fallback_data = await fallback_engine.extract(parsed.raw_text)
+
+            # Vendor fallback if AI gave generic / empty placeholder
+            if (
+                not extracted_data.vendor_name
+                or extracted_data.vendor_name.strip().lower() in ["unknown vendor", "unknown", "image document", "none", "null"]
+            ) and fallback_data.vendor_name and fallback_data.vendor_name != "Unknown Vendor":
+                extracted_data.vendor_name = fallback_data.vendor_name
+
+            # Invoice number
+            if not extracted_data.invoice_number and fallback_data.invoice_number:
+                extracted_data.invoice_number = fallback_data.invoice_number
+
+            # Invoice date
+            if not extracted_data.invoice_date and fallback_data.invoice_date:
+                extracted_data.invoice_date = fallback_data.invoice_date
+
+            # Amounts: subtotal & tax
+            if not extracted_data.subtotal and fallback_data.subtotal:
+                extracted_data.subtotal = fallback_data.subtotal
+            if not extracted_data.tax_amount and fallback_data.tax_amount:
+                extracted_data.tax_amount = fallback_data.tax_amount
+
+            # Total amount
+            if (
+                not extracted_data.total_amount
+                or extracted_data.total_amount in ["0.00", "0", "0.0", "None"]
+            ) and fallback_data.total_amount and fallback_data.total_amount != "0.00":
+                extracted_data.total_amount = fallback_data.total_amount
+
+            # Merge source snippets
+            if fallback_data.source_snippets:
+                for k, v in fallback_data.source_snippets.items():
+                    if k not in extracted_data.source_snippets or not extracted_data.source_snippets[k]:
+                        extracted_data.source_snippets[k] = v
+
+        except Exception as fusion_err:
+            logger.debug(f"Deterministic fusion skipped or had minor issue: {fusion_err}")
 
         # 3. Currency and Minor Units Normalization
         subtotal_cents = to_cents(extracted_data.subtotal)
         tax_cents = to_cents(extracted_data.tax_amount)
         total_cents = to_cents(extracted_data.total_amount)
+
+        # If subtotal + tax exist but total was 0, calculate total
+        if total_cents == 0 and (subtotal_cents > 0 or tax_cents > 0):
+            total_cents = subtotal_cents + tax_cents
+            extracted_data.total_amount = f"{total_cents / 100:.2f}"
 
         # 4. Clear old relations if reprocessing
         db.query(ExtractedField).filter(ExtractedField.document_id == document.id).delete()

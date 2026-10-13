@@ -101,19 +101,19 @@ def parse_image_document(file_path: Path, preview_dir: Path, doc_id: str) -> Par
     # If tesseract / pytesseract is available, OCR it. Otherwise wrap in placeholder or PyMuPDF OCR
     try:
         import pytesseract
+        raw_text = pytesseract.image_to_string(img).strip()
         ocr_data = pytesseract.image_to_data(img, output_type=pytesseract.Output.DICT)
         n_boxes = len(ocr_data['text'])
-        text_parts = []
         for i in range(n_boxes):
             word = ocr_data['text'][i].strip()
             if word:
-                text_parts.append(word)
                 x = float(ocr_data['left'][i])
                 y = float(ocr_data['top'][i])
                 w = float(ocr_data['width'][i])
                 h = float(ocr_data['height'][i])
                 spans.append(TextSpan(text=word, bbox=[x, y, x + w, y + h], page=1))
-        raw_text = " ".join(text_parts)
+        if not raw_text:
+            raw_text = f"Image document: {file_path.name}"
     except Exception as e:
         logger.info(f"Tesseract OCR not installed or failed ({e}); image stored with standard image dimensions.")
         raw_text = f"Image document: {file_path.name}"
