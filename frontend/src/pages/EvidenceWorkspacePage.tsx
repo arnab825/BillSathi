@@ -153,13 +153,13 @@ export const EvidenceWorkspacePage: React.FC = () => {
   return (
     <div className="space-y-4 pb-8">
       {/* Top Header & Document Switcher */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#374151] pb-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-[#374151] pb-3 min-w-0">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-lg sm:text-xl font-bold tracking-tight text-[#F9FAFB] truncate">
               Evidence Review Workspace
             </h1>
-            <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30">
+            <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30 whitespace-nowrap flex-shrink-0">
               Proof Before Trust
             </span>
           </div>
@@ -174,7 +174,7 @@ export const EvidenceWorkspacePage: React.FC = () => {
             value={doc.id}
             onChange={(newId) => setSearchParams({ docId: newId })}
             size="sm"
-            className="w-52 sm:w-64"
+            className="w-48 sm:w-60"
             options={
               documents?.map((d) => ({
                 value: d.id,
@@ -220,9 +220,9 @@ export const EvidenceWorkspacePage: React.FC = () => {
       </div>
 
       {/* Main Split-Screen Workbench (7 cols Viewer / 5 cols Panel) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5 items-start min-w-0 w-full">
         {/* Left: Interactive Document Viewer (7 cols) */}
-        <div className={`lg:col-span-7 space-y-2 ${mobileTab === 'fields' ? 'hidden lg:block' : 'block'}`}>
+        <div className={`lg:col-span-7 min-w-0 w-full space-y-2 ${mobileTab === 'fields' ? 'hidden lg:block' : 'block'}`}>
           {/* Document Viewer Toolbar */}
           <div className="p-2.5 rounded-t-xl bg-[#1F2937] border border-[#374151] border-b-0 flex items-center justify-between text-xs text-[#9CA3AF]">
             <div className="flex items-center gap-2">
@@ -296,16 +296,16 @@ export const EvidenceWorkspacePage: React.FC = () => {
             </div>
           </div>
 
-          {/* Canvas Viewport */}
-          <div className="relative rounded-b-xl border border-[#374151] bg-[#111827] overflow-auto max-h-[640px] flex items-center justify-center p-3">
+          {/* Canvas Viewport with Realistic Document Framing */}
+          <div className="relative rounded-b-xl border border-[#374151] bg-[#0b101b] overflow-auto max-h-[660px] flex items-center justify-center p-3 sm:p-5">
             <div
-              className="relative transition-transform duration-150 origin-top shadow-xl"
+              className="relative transition-transform duration-150 origin-top shadow-2xl rounded-lg overflow-hidden border border-slate-700/80 ring-1 ring-white/10 bg-white"
               style={{ transform: `scale(${zoomLevel / 100})` }}
             >
               <img
                 src={`/api/documents/${doc.id}/preview/${activePage}`}
                 alt="Document Page Preview"
-                className="w-full max-w-[620px] h-auto object-contain select-none rounded bg-white"
+                className="w-full max-w-full sm:max-w-[580px] h-auto object-contain select-none block"
                 onError={(e) => {
                   (e.target as HTMLElement).style.display = 'none';
                 }}
@@ -362,7 +362,7 @@ export const EvidenceWorkspacePage: React.FC = () => {
         </div>
 
         {/* Right: Extracted Fields & Verification Panel (5 cols) */}
-        <div className={`lg:col-span-5 space-y-3.5 ${mobileTab === 'viewer' ? 'hidden lg:block' : 'block'}`}>
+        <div className={`lg:col-span-5 min-w-0 w-full space-y-3.5 ${mobileTab === 'viewer' ? 'hidden lg:block' : 'block'}`}>
           {/* Human Review Confirmation Gate */}
           <div className="p-3.5 rounded-xl border border-[#374151] bg-[#1F2937] space-y-3">
             <div className="flex items-center justify-between">

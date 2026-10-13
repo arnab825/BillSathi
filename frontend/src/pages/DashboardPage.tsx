@@ -105,13 +105,13 @@ export const DashboardPage: React.FC = () => {
   return (
     <div className="space-y-6 pb-8">
       {/* Top Header: Title, Horizon Filters & Actions */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#374151]/80 pb-5">
-        <div>
-          <div className="flex items-center gap-2.5">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-[#374151]/80 pb-5 min-w-0">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2.5 flex-wrap">
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#F9FAFB]">
               Financial Operations Dashboard
             </h1>
-            <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30">
+            <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30 whitespace-nowrap flex-shrink-0">
               Live Ledger
             </span>
           </div>
@@ -120,9 +120,9 @@ export const DashboardPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap flex-shrink-0">
           {/* Interactive Time Horizon Switcher */}
-          <div className="flex items-center p-1 rounded-xl bg-[#111827] border border-[#374151] text-xs">
+          <div className="flex items-center p-1 rounded-xl bg-[#111827] border border-[#374151] text-xs flex-shrink-0">
             {(['all', 'quarter', 'month'] as const).map((period) => {
               const labels = { all: 'All Time', quarter: 'This Quarter', month: 'Last 30 Days' };
               const isActive = timeHorizon === period;
@@ -131,7 +131,7 @@ export const DashboardPage: React.FC = () => {
                   key={period}
                   type="button"
                   onClick={() => setTimeHorizon(period)}
-                  className={`px-2.5 py-1 rounded-lg font-medium btn-transition ${
+                  className={`px-2.5 py-1 rounded-lg font-medium btn-transition whitespace-nowrap ${
                     isActive
                       ? 'bg-[#1F2937] text-[#10B981] font-bold shadow-sm border border-[#374151]'
                       : 'text-[#9CA3AF] hover:text-[#F9FAFB]'
@@ -143,26 +143,26 @@ export const DashboardPage: React.FC = () => {
             })}
           </div>
 
+          <Link
+            to="/intake"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1F2937] hover:bg-[#283548] text-[#F9FAFB] text-xs font-semibold border border-[#374151] btn-transition shadow-sm whitespace-nowrap"
+          >
+            <Upload className="w-3.5 h-3.5 text-[#9CA3AF]" />
+            Upload Document
+          </Link>
+
           <button
             onClick={() => seedMutation.mutate()}
             disabled={seeding}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-black text-xs font-bold btn-transition disabled:opacity-50 shadow-sm"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-black text-xs font-bold btn-transition disabled:opacity-50 shadow-sm whitespace-nowrap"
           >
             {seeding ? (
               <RefreshCw className="w-3.5 h-3.5 animate-spin" />
             ) : (
               <Sparkles className="w-3.5 h-3.5" />
             )}
-            Seed Synthetic Demo
+            Seed Demo
           </button>
-
-          <Link
-            to="/intake"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1F2937] hover:bg-[#283548] text-[#F9FAFB] text-xs font-semibold border border-[#374151] btn-transition shadow-sm"
-          >
-            <Upload className="w-3.5 h-3.5 text-[#9CA3AF]" />
-            Upload Document
-          </Link>
         </div>
       </div>
 
