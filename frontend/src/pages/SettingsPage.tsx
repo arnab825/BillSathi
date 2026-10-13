@@ -125,19 +125,30 @@ export const SettingsPage: React.FC = () => {
 
   const switchWorkspaceMutation = useMutation({
     mutationFn: api.switchWorkspace,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userAccountProfile'] });
+    onSuccess: (updatedAccount) => {
+      queryClient.setQueryData(['userAccount'], updatedAccount);
+      queryClient.invalidateQueries({ queryKey: ['userAccount'] });
       queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
       queryClient.invalidateQueries({ queryKey: ['documentsList'] });
+      const activeWs = updatedAccount.workspaces?.find((w) => w.id === updatedAccount.active_workspace_id);
+      toast.success('Workspace Switched', `Active workspace set to ${activeWs?.name || 'selected workspace'}`);
+    },
+    onError: (err: any) => {
+      toast.error('Switch Failed', err?.message || 'Could not switch workspace');
     },
   });
 
   const createWorkspaceMutation = useMutation({
     mutationFn: (name: string) => api.createWorkspace(name),
-    onSuccess: () => {
+    onSuccess: (updatedAccount) => {
       setNewWorkspaceName('');
       setShowNewWorkspace(false);
-      queryClient.invalidateQueries({ queryKey: ['userAccountProfile'] });
+      queryClient.setQueryData(['userAccount'], updatedAccount);
+      queryClient.invalidateQueries({ queryKey: ['userAccount'] });
+      toast.success('Workspace Created', 'New business entity registered.');
+    },
+    onError: (err: any) => {
+      toast.error('Creation Failed', err?.message || 'Could not create workspace');
     },
   });
 
@@ -324,23 +335,28 @@ export const SettingsPage: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                 {account?.workspaces?.map((ws) => {
-                  const isActive = account.active_workspace_id === ws.id;
+                  const currentActiveId =
+                    switchWorkspaceMutation.isPending && switchWorkspaceMutation.variables
+                      ? switchWorkspaceMutation.variables
+                      : account.active_workspace_id;
+                  const isActive = currentActiveId === ws.id;
                   return (
                     <button
                       key={ws.id}
                       type="button"
+                      disabled={switchWorkspaceMutation.isPending}
                       onClick={() => switchWorkspaceMutation.mutate(ws.id)}
-                      className={`p-2.5 rounded-lg border text-left btn-transition flex items-center justify-between ${
+                      className={`p-2.5 rounded-lg border text-left btn-transition flex items-center justify-between cursor-pointer ${
                         isActive
-                          ? 'bg-[#10B981]/10 border-[#10B981] text-[#F9FAFB]'
-                          : 'bg-[#1F2937] border-[#374151] text-[#9CA3AF] hover:bg-[#283548] hover:text-[#F9FAFB]'
+                          ? 'bg-[#10B981]/15 border-[#10B981] text-[#F9FAFB] ring-1 ring-[#10B981]/50 shadow-sm'
+                          : 'bg-[#1F2937] border-[#374151] text-[#9CA3AF] hover:bg-[#283548] hover:text-[#F9FAFB] hover:border-[#4B5563]'
                       }`}
                     >
                       <div className="min-w-0 pr-2">
                         <div className="text-xs font-bold truncate">{ws.name}</div>
                         <div className="text-[10px] text-[#9CA3AF]">{ws.type}</div>
                       </div>
-                      {isActive && <CheckCircle2 className="w-3.5 h-3.5 text-[#10B981] flex-shrink-0" />}
+                      {isActive && <CheckCircle2 className="w-3.5 h-3.5 text-[#10B981] flex-shrink-0 animate-in fade-in" />}
                     </button>
                   );
                 })}

@@ -90,6 +90,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       const switchedWs = data.workspaces.find((w) => w.id === wsId);
       toast.success('Workspace Switched', `Active ledger: ${switchedWs?.name || wsId}`);
       setWorkspaceMenuOpen(false);
+      queryClient.setQueryData(['userAccount'], data);
       queryClient.invalidateQueries();
     },
   });
@@ -372,7 +373,6 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                   {account?.email || 'alex@billsathi.local'}
                 </div>
               </div>
-              <Settings className="w-3.5 h-3.5 text-[#9CA3AF] flex-shrink-0" />
             </Link>
           ) : (
             <Link
