@@ -10,6 +10,8 @@ import { RegisterPage } from './pages/RegisterPage';
 import { VendorIntelligencePage } from './pages/VendorIntelligencePage';
 import { SettingsPage } from './pages/SettingsPage';
 
+import { ToastProvider } from './context/ToastContext';
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -23,20 +25,22 @@ const queryClient = new QueryClient({
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AppLayout>
-          <Routes>
-            <Route path="/" element={<DashboardPage />} />
-            <Route path="/intake" element={<IntakePage />} />
-            <Route path="/workspace" element={<EvidenceWorkspacePage />} />
-            <Route path="/anomalies" element={<AnomalyCenterPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/vendors" element={<VendorIntelligencePage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </AppLayout>
-      </BrowserRouter>
+      <ToastProvider>
+        <BrowserRouter>
+          <AppLayout>
+            <Routes>
+              <Route path="/" element={<DashboardPage />} />
+              <Route path="/intake" element={<IntakePage />} />
+              <Route path="/workspace" element={<EvidenceWorkspacePage />} />
+              <Route path="/anomalies" element={<AnomalyCenterPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/vendors" element={<VendorIntelligencePage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </AppLayout>
+        </BrowserRouter>
+      </ToastProvider>
     </QueryClientProvider>
   );
 }

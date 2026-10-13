@@ -15,10 +15,12 @@ import {
 } from 'lucide-react';
 import { api } from '../api/client';
 import { StatusBadge } from '../components/common/StatusBadge';
+import { useToast } from '../context/ToastContext';
 
 export const IntakePage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const toast = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [dragActive, setDragActive] = useState(false);
@@ -67,16 +69,21 @@ export const IntakePage: React.FC = () => {
       queryClient.invalidateQueries();
       setSelectedFile(null);
       setFileHashPreview(null);
+      toast.success('Document Ingested', `Extracted financial records from ${newDoc.filename}`);
       navigate(`/workspace?docId=${newDoc.id}`);
     },
     onError: (err: any) => {
       setErrorMsg(err.message || 'Failed to upload and process document.');
+      toast.error('Upload Failed', err.message || 'Error processing document');
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.deleteDocument(id),
-    onSuccess: () => queryClient.invalidateQueries(),
+    onSuccess: () => {
+      toast.info('Document Removed', 'Invoice records and rendered preview images deleted');
+      queryClient.invalidateQueries();
+    },
   });
 
   return (

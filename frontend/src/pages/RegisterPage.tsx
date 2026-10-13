@@ -10,8 +10,11 @@ import {
 } from 'lucide-react';
 import { api } from '../api/client';
 import { StatusBadge, formatCents } from '../components/common/StatusBadge';
+import { CustomDropdown } from '../components/common/CustomDropdown';
+import { useToast } from '../context/ToastContext';
 
 export const RegisterPage: React.FC = () => {
+  const toast = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -38,6 +41,7 @@ export const RegisterPage: React.FC = () => {
   ];
 
   const handleExportCsv = (statusOnly?: string) => {
+    toast.success('Exporting RFC 4180 Register', `Preparing ${statusOnly || 'all'} financial records for download`);
     const url = api.getExportCsvUrl(statusOnly);
     window.location.href = url;
   };
@@ -89,29 +93,30 @@ export const RegisterPage: React.FC = () => {
         </div>
 
         {/* Filter dropdowns */}
-        <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
-          <select
+        <div className="flex items-center gap-2.5 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+          <CustomDropdown
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-1.5 rounded-lg bg-[#111827] border border-[#374151] text-xs text-[#F9FAFB] font-medium focus:outline-none"
-          >
-            <option value="all">All Review States</option>
-            <option value="Confirmed">Confirmed</option>
-            <option value="Reviewed">Reviewed</option>
-            <option value="Needs review">Needs Review</option>
-          </select>
+            onChange={setStatusFilter}
+            size="sm"
+            className="w-48"
+            options={[
+              { value: 'all', label: 'All Review States' },
+              { value: 'Confirmed', label: 'Confirmed (Audit-Ready)', badge: 'Verified' },
+              { value: 'Reviewed', label: 'Reviewed' },
+              { value: 'Needs review', label: 'Needs Review', badge: 'Action' },
+            ]}
+          />
 
-          <select
+          <CustomDropdown
             value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            className="px-3 py-1.5 rounded-lg bg-[#111827] border border-[#374151] text-xs text-[#F9FAFB] font-medium focus:outline-none"
-          >
-            {categories.map((c) => (
-              <option key={c} value={c}>
-                {c === 'all' ? 'All Categories' : c}
-              </option>
-            ))}
-          </select>
+            onChange={setCategoryFilter}
+            size="sm"
+            className="w-48"
+            options={categories.map((c) => ({
+              value: c,
+              label: c === 'all' ? 'All Categories' : c,
+            }))}
+          />
         </div>
       </div>
 

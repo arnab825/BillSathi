@@ -25,10 +25,13 @@ import {
 } from 'lucide-react';
 import { api, ExtractedFieldItem } from '../api/client';
 import { StatusBadge, VerificationTierBadge, formatCents } from '../components/common/StatusBadge';
+import { CustomDropdown } from '../components/common/CustomDropdown';
+import { useToast } from '../context/ToastContext';
 
 export const EvidenceWorkspacePage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
+  const toast = useToast();
 
   const docIdParam = searchParams.get('docId');
 
@@ -81,8 +84,12 @@ export const EvidenceWorkspacePage: React.FC = () => {
       api.updateField(fieldId, value, note),
     onSuccess: () => {
       setEditingFieldId(null);
+      toast.success('Field Corrected', 'Audit trail updated and marked as human-confirmed');
       queryClient.invalidateQueries({ queryKey: ['documentDetail', selectedDocId] });
       queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
+    },
+    onError: () => {
+      toast.error('Correction Failed', 'Unable to save field update');
     },
   });
 
@@ -90,9 +97,13 @@ export const EvidenceWorkspacePage: React.FC = () => {
   const confirmMutation = useMutation({
     mutationFn: (recId: string) => api.confirmRecord(recId, reviewerName),
     onSuccess: () => {
+      toast.success('Record Confirmed', `Promoted to financial ledger by ${reviewerName}`);
       queryClient.invalidateQueries({ queryKey: ['documentDetail', selectedDocId] });
       queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
       queryClient.invalidateQueries({ queryKey: ['documentsList'] });
+    },
+    onError: () => {
+      toast.error('Confirmation Failed', 'Unable to promote document to verified ledger');
     },
   });
 
@@ -156,19 +167,22 @@ export const EvidenceWorkspacePage: React.FC = () => {
           </p>
         </div>
 
-        {/* Switch Document Dropdown & Document Status */}
+        {/* Switch Document Interactive Dropdown & Document Status */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          <select
+          <CustomDropdown
             value={doc.id}
-            onChange={(e) => setSearchParams({ docId: e.target.value })}
-            className="px-2.5 py-1.5 rounded-lg bg-[#111827] border border-[#374151] text-[#F9FAFB] text-xs font-medium focus:outline-none focus:border-[#10B981] btn-transition"
-          >
-            {documents?.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.filename} ({d.status})
-              </option>
-            ))}
-          </select>
+            onChange={(newId) => setSearchParams({ docId: newId })}
+            size="sm"
+            className="w-52 sm:w-64"
+            options={
+              documents?.map((d) => ({
+                value: d.id,
+                label: d.filename,
+                description: `${d.financial_record?.vendor_name || 'Processing'} • ${formatCents(d.financial_record?.total_cents || 0)}`,
+                badge: d.status,
+              })) || []
+            }
+          />
 
           <StatusBadge status={doc.status} />
         </div>

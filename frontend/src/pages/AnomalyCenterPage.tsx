@@ -12,9 +12,12 @@ import {
 } from 'lucide-react';
 import { api, AnomalyItem } from '../api/client';
 import { StatusBadge } from '../components/common/StatusBadge';
+import { CustomDropdown } from '../components/common/CustomDropdown';
+import { useToast } from '../context/ToastContext';
 
 export const AnomalyCenterPage: React.FC = () => {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [unresolvedOnly, setUnresolvedOnly] = useState(false);
   const [selectedAnomaly, setSelectedAnomaly] = useState<AnomalyItem | null>(null);
   const [resolutionAction, setResolutionAction] = useState('ACCEPTED_OVERRIDE');
@@ -32,7 +35,11 @@ export const AnomalyCenterPage: React.FC = () => {
     onSuccess: () => {
       setSelectedAnomaly(null);
       setResolutionNote('');
+      toast.success('Anomaly Resolved', 'Exception cleared and logged in audit ledger');
       queryClient.invalidateQueries();
+    },
+    onError: () => {
+      toast.error('Resolution Failed', 'Could not save anomaly resolution');
     },
   });
 
@@ -186,15 +193,28 @@ export const AnomalyCenterPage: React.FC = () => {
               <label className="text-[11px] font-bold text-[#9CA3AF] uppercase tracking-wider">
                 Resolution Action
               </label>
-              <select
+              <CustomDropdown
                 value={resolutionAction}
-                onChange={(e) => setResolutionAction(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-[#111827] border border-[#374151] text-xs text-[#F9FAFB] focus:outline-none focus:border-[#10B981]"
-              >
-                <option value="ACCEPTED_OVERRIDE">Accept & Override (Valid Discrepancy / Fee)</option>
-                <option value="CORRECTED_FIELD">Manual Field Correction Applied</option>
-                <option value="DISMISSED">Dismiss as Non-Actionable</option>
-              </select>
+                onChange={setResolutionAction}
+                className="w-full"
+                options={[
+                  {
+                    value: 'ACCEPTED_OVERRIDE',
+                    label: 'Accept & Override',
+                    description: 'Valid fee, discount, or accepted roundoff',
+                  },
+                  {
+                    value: 'CORRECTED_FIELD',
+                    label: 'Manual Field Correction',
+                    description: 'Corrected in evidence workbench',
+                  },
+                  {
+                    value: 'DISMISSED',
+                    label: 'Dismiss as Non-Actionable',
+                    description: 'Informational advisory cleared',
+                  },
+                ]}
+              />
             </div>
 
             <div className="space-y-1.5">

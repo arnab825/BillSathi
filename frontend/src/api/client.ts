@@ -71,6 +71,7 @@ export interface DocumentItem {
   ocr_applied: boolean;
   raw_text: string | null;
   error_message: string | null;
+  financial_record?: FinancialRecordItem | null;
   created_at: string;
   updated_at: string;
 }
