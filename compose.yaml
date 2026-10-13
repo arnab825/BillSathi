@@ -1,0 +1,37 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: billsathi-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:////app/data/billsathi.db
+      # On Podman / Docker Desktop for Windows, host.containers.internal or host.docker.internal resolves to the host machine
+      - OLLAMA_BASE_URL=http://host.containers.internal:11434
+      - OLLAMA_MODEL=gemma2:2b
+      - OLLAMA_TIMEOUT_SECONDS=45.0
+      - ENVIRONMENT=development
+    extra_hosts:
+      - "host.containers.internal:host-gateway"
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./backend/data:/app/data
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: billsathi-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  billsathi-data:

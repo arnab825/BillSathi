@@ -1,0 +1,44 @@
+[
+  {
+    "document_key": "normal",
+    "filename": "invoice_normal_acme.pdf",
+    "ground_truth": {
+      "vendor_name": "Acme Cloud Infrastructure",
+      "invoice_number": "INV-2026-001",
+      "invoice_date": "2026-10-01",
+      "currency": "USD",
+      "subtotal": "1,000.00",
+      "tax_amount": "100.00",
+      "total_amount": "1,100.00",
+      "category_suggestion": "Cloud Hosting"
+    }
+  },
+  {
+    "document_key": "duplicate",
+    "filename": "invoice_duplicate_acme.pdf",
+    "ground_truth": {
+      "vendor_name": "Acme Cloud Infrastructure",
+      "invoice_number": "INV-2026-001",
+      "invoice_date": "2026-10-01",
+      "currency": "USD",
+      "subtotal": "1,000.00",
+      "tax_amount": "100.00",
+      "total_amount": "1,100.00",
+      "category_suggestion": "Cloud Hosting"
+    }
+  },
+  {
+    "document_key": "arithmetic_error",
+    "filename": "invoice_arithmetic_error_apex.pdf",
+    "ground_truth": {
+      "vendor_name": "Apex Office Supplies",
+      "invoice_number": "INV-2026-042",
+      "invoice_date": "2026-10-05",
+      "currency": "USD",
+      "subtotal": "800.00",
+      "tax_amount": "100.00",
+      "total_amount": "950.00",
+      "category_suggestion": "Office Supplies"
+    }
+  }
+]
