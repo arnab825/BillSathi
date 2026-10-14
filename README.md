@@ -44,6 +44,60 @@ Most AI invoice extractors act as **black-box transcription bots**: they blindly
 | **Accountant-Ready CSV Export** | RFC 4180-compliant CSV export with normalized dates, categories, tax breakdowns, document currency, home ledger currency, and converted totals. |
 | **User Profile & Workspace Switching** | Custom persistent avatar upload, reviewer identity management, and instantaneous multi-client workspace switching. |
 
+## 🖼️ DevFest Judge Highlights
+
+These screenshots showcase the core features that best explain BillSathi's value proposition and architectural integrity during a judging walkthrough:
+
+### 1. Live Financial Operations Dashboard
+[![BillSathi dashboard](frontend/public/screenshots/dashboard.png)](frontend/public/screenshots/dashboard.png)
+**Show this first:** Gives judges an immediate overview of operational status:
+- Ingestion metrics: Processed documents, human review queue, and verified ledger counts.
+- **Critical Audit Gate:** Top alert banner notifying reviewers of 3 deterministic anomalies requiring resolution.
+- Live Home Ledger Currency displayed in INR (`₹`) with dynamic conversion across all summaries.
+- Top navigation bar showing real-time local open-weight AI runtime status (`Gemma 2 (Local AI) • 103ms`).
+
+### 2. Flagship Evidence Workspace (Proof Before Trust)
+[![BillSathi evidence review workspace](frontend/public/screenshots/evidence-workspace.png)](frontend/public/screenshots/evidence-workspace.png)
+**Flagship proof point:** Eliminates AI hallucination anxiety by pairing source documents with extracted records:
+- **Interactive Spatial Bounding Boxes:** Clicking extracted fields dynamically draws green bounding boxes over the exact physical coordinates on the document canvas.
+- **Multi-Segment Arithmetic Check:** Visualizes line items sum vs. printed subtotal and calculated tax in real-time.
+- **Human Verification Gate:** Audit sign-off workflow transitions documents into confirmed, audit-ready financial facts.
+- **Dual Currency Math:** Displays printed document totals alongside real-time converted home ledger equivalents (`$950.00 USD ≈ ₹79,325.00 INR`).
+
+### 3. Deterministic Anomaly & Exception Center
+[![BillSathi anomaly center](frontend/public/screenshots/anomaly-center.png)](frontend/public/screenshots/anomaly-center.png)
+**Explains our core thesis:** BillSathi never lets AI be the mathematical authority:
+- Catches calculation mismatches (`$800.00 + $100.00 = $900.00 != $950.00 printed`) using integer-cents arithmetic.
+- Flags vendor-level duplicate invoice numbers (`INV-2026-001`) and SHA-256 cryptographic upload collisions.
+- **AI Explainer Agent:** Click `Explain with AI` to engage the local Gemma model for root-cause diagnosis and signed audit override recommendations.
+
+### 4. Vendor Spending Intelligence & Volatility Analysis
+[![BillSathi vendor intelligence](frontend/public/screenshots/vendor-intelligence.png)](frontend/public/screenshots/vendor-intelligence.png)
+**Commercial freelance value:** Continuous vendor spend tracking and proactive anomaly detection:
+- Automatic vendor baseline indexing with historical average cost metrics.
+- Baseline invoice reference linking (`INV-2026-042`) for instant cross-document verification.
+- Automatically flags invoices deviating by >25% from vendor history to catch price creep or billing errors.
+
+### 5. Financial Expense Register & Accountant CSV Export
+[![BillSathi financial expense register](frontend/public/screenshots/expense-register.png)](frontend/public/screenshots/expense-register.png)
+**Ready for tax handoff:** Comprehensive filterable expense register:
+- Complete breakdown across invoice dates, vendors, numbers, categories, subtotals, taxes, and totals.
+- Dual-currency normalization for clean domestic tax filing and accountant review.
+- One-click **AI Executive Briefing** generation and RFC 4180-compliant **Audit-Ready CSV Export**.
+
+### 6. Business Entity & Multi-Workspace Fiscal Profile
+[![BillSathi settings and profile](frontend/public/screenshots/settings-profile.png)](frontend/public/screenshots/settings-profile.png)
+**Multi-client freelance flexibility:** 
+- Instant switching between client workspaces and business entities (e.g. `Rivera Digital Labs LLC` vs `Personal & Micro Ventures`).
+- Reviewer signature photo / avatar customization stored locally in SQLite.
+- Entity-specific Home Ledger Currency selection (`INR ₹`, `USD $`, `EUR €`, `GBP £`, etc.) and tax identifier management (`EIN / VAT`).
+
+> 💡 **Suggested 60-Second Demo Story for Judges:**
+> 1. Start on the **Dashboard** to show the live local Gemma AI status and the 3 active anomalies.
+> 2. Open the **Evidence Workspace** to show spatial bounding box proof and human confirmation.
+> 3. Visit the **Anomaly Center** to reveal the intentional arithmetic error and duplicate catch.
+> 4. Tour **Vendor Intelligence** and the **Expense Register** to export accountant-ready CSVs.
+
 ---
 
 ## ⏱️ Repeatable 3-Minute Hackathon Demonstration
