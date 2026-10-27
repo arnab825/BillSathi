@@ -12,6 +12,12 @@
 
 Built for the **Hacktoberfest 2026 DEV Open-Source AI Challenge** — *Week 2: Side Hustle*.
 
+<br/>
+
+<p align="center">
+  <img src="docs/cover.jpg" alt="BillSathi: Proof Before Trust" width="100%" />
+</p>
+
 ---
 
 ## 🌟 The Core Problem & Our Thesis

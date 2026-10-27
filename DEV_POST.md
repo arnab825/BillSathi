@@ -2,6 +2,12 @@
 
 *This is a submission for the [Hacktoberfest Open-Source AI Challenge Week 2: Side Hustle](https://dev.to/challenges/hacktoberfest-week2-2026-10-12)*
 
+<br/>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/arnab825/BillSathi/main/docs/cover.jpg" alt="BillSathi: Proof Before Trust" width="100%" />
+</p>
+
 ---
 
 ## What I Built
